@@ -1077,8 +1077,11 @@
   function brandMark() {
     /* A soft ninja-star + heart mark rendered inline — rounded, kid-friendly,
        no external asset required (the canonical icon URL is used on the gate). */
-    return '<svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">' +
-      '<g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">' +
+    return '<img src="https://www.aexperiences.com/LilNinja_OS.png" alt="LilNinja OS" ' +
+      'style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block" ' +
+      'onerror="this.style.display=\'none\';this.parentNode.classList.add(\'fallback\')">' +
+      '<svg class="fallback-mark" viewBox="0 0 32 32" width="26" height="26" style="display:none" aria-hidden="true">' +
+      '<g fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">' +
       '<path d="M16 4 L19.4 12.6 L28 16 L19.4 19.4 L16 28 L12.6 19.4 L4 16 L12.6 12.6 Z"/>' +
       '<circle cx="16" cy="16" r="3.1"/></g></svg>';
   }

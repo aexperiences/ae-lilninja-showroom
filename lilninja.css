@@ -441,3 +441,8 @@ input[type=range]{padding:0; border:none; background:transparent; accent-color:v
   .pagehead-actions{margin-left:0}
   .ribbon,.topbar{padding-left:16px; padding-right:16px}
 }
+
+/* Brand mark: real live OS icon is the logo; inline mark only shows if it fails to load */
+.bmark img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.bmark.fallback img{display:none}
+.bmark.fallback .fallback-mark{display:block !important}
