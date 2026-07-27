@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>IT · System Health · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "it.html", crumb: "IT · System Health" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "IT · System Health",
+    "CLEAR / WATCH / INTERVENE on the things a gym cannot run a Monday without: online enrolment, the check-in kiosk, " +
+    "the parent portal, the payment processor and the nightly backup. Plainly stated — no dashboard theater.",
+    '<button class="btn tang sm" id="consultBtn">Consult IT</button>'
+  ));
+
+  var watch = d.systems.filter(function (s){ return s.state !== "CLEAR"; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Services", String(d.systems.length), "Monitored") +
+    L.stat("CLEAR", String(d.systems.filter(function(s){return s.state==="CLEAR";}).length), "Reachable and verified", "good") +
+    L.stat("WATCH", String(watch.length), watch.map(function(s){return s.name;}).join(", ") || "None", watch.length ? "watch" : "good") +
+    L.stat("INTERVENE", "0", "No human needed right now", "good") +
+    '</div>'));
+
+  c.appendChild(L.card(
+    '<h2>System board</h2>' +
+    '<div class="card-sub">The state, plainly, and the one metric that proves it.</div>' +
+    '<table><thead><tr><th>Service</th><th>State</th><th>Reading</th></tr></thead><tbody>' +
+    d.systems.map(function (s) {
+      var kind = s.state === "CLEAR" ? "good" : (s.state === "WATCH" ? "watch" : "bad");
+      return '<tr><td class="t-main">' + L.esc(s.name) + '</td>' +
+        '<td>' + L.tag(s.state, kind) + '</td>' +
+        '<td class="small muted">' + L.esc(s.metric) + '</td></tr>';
+    }).join("") + '</tbody></table>' +
+    '<div class="fence" style="margin-top:12px"><b>The payment processor is stubbed in this showroom.</b> ' +
+    'No card is ever charged here. In production, a processor failure on the 1st is a real INTERVENE — it pages a ' +
+    'person immediately, because a missed autopay run is missed tuition.</div>'
+  ));
+
+  c.appendChild(L.card(
+    '<h2>Consult IT</h2>' +
+    '<div class="card-sub">Ward (DH) owns uptime; Cache (AE) packages incidents and backup verification; Steady ' +
+    '(Pacemaker) calls health and escalates a real outage. Access asks whether enrolment, the kiosk and the portal ' +
+    'are reachable; Loss asks where the exposure is and whether the roster is backed up.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Is anything on the watch list?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Is anything on the watch list?','Is the roster backed up?','Is the processor healthy?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "it.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("it",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

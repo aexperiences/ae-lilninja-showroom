@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Books &amp; Metrics · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "books.html", crumb: "Books & Metrics" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Books & Metrics",
+    "MRR by program, fill rate, autopay adoption and Revenue Kept — computed live from the schedule and the family " +
+    "records, not reconstructed at month end. Benchmarks ship sourced-or-blank: where no youth-gym target is sourced " +
+    "yet, the metric ships with no band rather than a guessed one.",
+    ""
+  ));
+
+  /* KPI board */
+  var kpis = L.kpis();
+  function fmt(k){ if(k.fmt==="pct")return L.pct(k.value); if(k.fmt==="int")return String(Math.round(k.value)); if(k.fmt==="money")return L.money(k.value); return k.value; }
+  c.appendChild(L.card(
+    '<h2>The board</h2>' +
+    '<div class="card-sub">The numbers an owner is judged on. Every value here is live.</div>' +
+    '<div class="statrow">' + kpis.map(function (k) {
+      return L.stat(k.label, fmt(k), k.bench && k.bench.target ? "Target " + k.bench.target[0] + "–" + k.bench.target[1] : "No sourced benchmark yet", k.band);
+    }).join("") + '</div>'
+  ));
+
+  /* MRR by program */
+  var byProg = L.mrrByProgram(d);
+  var maxMrr = byProg.reduce(function (m,p){ return Math.max(m, p.mrr); }, 1);
+  var total = L.grossMRR(d);
+  c.appendChild(L.card(
+    '<h2>MRR by program</h2>' +
+    '<div class="card-sub">Recurring monthly revenue split by program family — enrolled × monthly tuition, camps ' +
+    'excluded because they are seasonal.</div>' +
+    '<table><thead><tr><th>Program</th><th>Share of MRR</th><th class="num">Monthly</th><th class="num">% of MRR</th></tr></thead><tbody>' +
+    byProg.map(function (p) {
+      return '<tr><td><span class="pchip" style="background:' + p.color + '">' + L.esc(p.program) + '</span></td>' +
+        '<td>' + L.bar(p.mrr / maxMrr * 100, "") + '</td>' +
+        '<td class="num"><b>' + L.money(p.mrr) + '</b></td>' +
+        '<td class="num">' + (total ? (p.mrr/total*100).toFixed(0) : 0) + '%</td></tr>';
+    }).join("") +
+    '<tr><td><b>Total</b></td><td></td><td class="num"><b>' + L.money(total) + '</b></td><td class="num">100%</td></tr>' +
+    '</tbody></table>'
+  ));
+
+  /* Fill rate by class */
+  c.appendChild(L.card(
+    '<h2>Fill rate by class</h2>' +
+    '<div class="card-sub">Enrolled ÷ capacity per class. Full classes are a waitlist to promote; the light ones are ' +
+    'the marketing target. Empty seats are the growth lever, so this is the operating number, not a vanity metric.</div>' +
+    '<table><thead><tr><th>Class</th><th>Program</th><th class="num">Enrolled</th><th class="num">Cap</th><th style="width:180px">Fill</th></tr></thead><tbody>' +
+    d.classes.filter(L.isRecurring).sort(function(a,b){return L.classFill(b)-L.classFill(a);}).map(function (x) {
+      var fp = L.classFill(x)*100;
+      var cls = x.enrolled>=x.cap ? "watch" : (fp<60 ? "bad" : "");
+      return '<tr><td class="t-main">' + L.esc(x.name) + '</td>' +
+        '<td><span class="pchip" style="background:' + L.programColor(x.program) + '">' + L.esc(x.program) + '</span></td>' +
+        '<td class="num">' + x.enrolled + '</td><td class="num">' + x.cap + '</td>' +
+        '<td><div class="row" style="gap:8px;flex-wrap:nowrap"><b class="mono">' + fp.toFixed(0) + '%</b>' +
+        '<span style="flex:1">' + L.bar(fp, cls==="bad"?"bad":"") + '</span></div></td></tr>';
+    }).join("") + '</tbody></table>' +
+    L.srcNote("No sourced fill benchmark yet — candidate: IHRSA / Health & Fitness Association youth-program data, " +
+      "USA Gymnastics club economics. Until one is cited, no target band ships.")
+  ));
+
+  /* the honest benchmarks note */
+  c.appendChild(L.card(
+    '<h2>Why the target columns are blank</h2>' +
+    '<div class="fence"><b>Blank beats confident-wrong.</b> No youth-gym benchmark has been sourced for this build ' +
+    'yet, so every metric ships with its live value and NO target band. Filling those bands is the next piece of ' +
+    'work, not a gap to paper over with a guessed number.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      L.tag("IHRSA / Health & Fitness Association", "ghost") +
+      L.tag("USA Gymnastics club economics", "ghost") +
+      L.tag("Jackrabbit / iClassPro reports", "ghost") +
+      L.tag("Idaho youth-activity staffing rules", "ghost") +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal">Candidate sources to research and cite before any band is filled in.</div>'
+  ));
+})();
+</script>
+</body>
+</html>

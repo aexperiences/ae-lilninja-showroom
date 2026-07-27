@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enrolment &amp; Waitlists · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "enroll.html", crumb: "Enrolment & Waitlists" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Enrolment & Waitlists",
+    "Public online enrolment off the class schedule, and waitlist promotion the moment a seat opens. A gym's growth " +
+    "is literally its waitlist — this room makes sure a full class never sits with a family waiting in a text thread.",
+    '<button class="btn tang sm" id="consultBtn">Consult the enrolment chain</button>'
+  ));
+
+  var full = L.fullClasses(d);
+  var open = d.classes.filter(function (x){ return L.isRecurring(x) && x.enrolled < x.cap; });
+  var openSeats = open.reduce(function (s,x){ return s + (x.cap - x.enrolled); }, 0);
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Open seats", String(openSeats), "Across " + open.length + " classes with room") +
+    L.stat("Full · waitlist", String(full.length), full.map(function(x){return x.name;}).join(", ") || "None", full.length ? "watch" : "good") +
+    L.stat("Avg fill", L.pct(L.fillRate(d)), "Average of per-class fill") +
+    '</div>'));
+
+  /* waitlist promotion */
+  var waitRows = full.map(function (x) {
+    return '<tr><td><div class="t-main">' + L.esc(x.name) + '</div>' +
+      '<div class="t-sub">' + L.esc(x.program) + ' · ' + L.esc(x.day) + ' ' + L.esc(x.time) + ' · ' + L.esc(x.coach) + '</div></td>' +
+      '<td class="num">' + x.enrolled + '/' + x.cap + '</td>' +
+      '<td>' + L.tag("waitlist open", "watch") + '</td>' +
+      '<td><button class="btn ghost sm promote" data-cls="' + L.esc(x.name) + '">Stage promotion</button></td></tr>';
+  }).join("") || '<tr><td colspan="4" class="empty">No class is full — nothing to promote.</td></tr>';
+  c.appendChild(L.card(
+    '<h2>Waitlist promotion</h2>' +
+    '<div class="card-sub">When a seat opens in a full class, the next family is enrolment already decided — the ' +
+    'notice just has to go out. But a notice reaches a family outside the gym, so the send stays behind the fence.</div>' +
+    '<table><thead><tr><th>Full class</th><th class="num">Fill</th><th>Status</th><th></th></tr></thead>' +
+    '<tbody>' + waitRows + '</tbody></table>'
+  ));
+
+  /* open enrolment off the schedule */
+  c.appendChild(L.card(
+    '<h2>Open online enrolment</h2>' +
+    '<div class="card-sub">This is what a parent sees on the public site — classes with room, straight off the ' +
+    'schedule. Placing a child stages a confirmation; nothing is emailed in the showroom.</div>' +
+    '<div id="enrollForm" class="grid g3" style="margin-bottom:12px">' +
+      '<div><label class="f">Family name</label><input id="famName" placeholder="e.g. The Foster Family"></div>' +
+      '<div><label class="f">Child</label><input id="childName" placeholder="e.g. Ivy (4)"></div>' +
+      '<div><label class="f">Class (has room)</label><select id="classSel">' +
+        open.map(function(x){return '<option value="'+L.esc(x.id)+'">'+L.esc(x.name)+' — '+(x.cap-x.enrolled)+' left</option>';}).join("") +
+      '</select></div>' +
+    '</div>' +
+    '<button class="btn tang" id="enrollGo">Stage enrolment</button>' +
+    '<div id="enrollEcho" class="muted small" style="margin-top:10px"></div>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult the enrolment chain</h2>' +
+    '<div class="card-sub">Gatekeeper (DH) owns who is coming in; Welcome (AE) packages confirmations and waitlist ' +
+    'notices; Threshold (Pacemaker) releases an enrolment move at 80% but sends nothing. Fill argues which open seat ' +
+    'grows the gym; Fit asks whether the child is the right age and level.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which waitlist should we promote?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which waitlist should we promote?','Where are the open seats?','What trials are booked?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "enroll.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("enroll",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".promote"), function (b) {
+      b.addEventListener("click", function () {
+        L.stage("external", "Promote the waitlist — " + this.dataset.cls,
+          "A seat is open in " + this.dataset.cls + ". Email the next waitlist family and offer enrolment.",
+          "Reaches a family outside the gym — a send goes behind the fence.", "Welcome (Enrolment AE)");
+        this.disabled = true; this.textContent = "Staged ✓";
+        L.toast("Waitlist promotion staged — nothing was emailed.", "ok");
+      });
+    });
+    document.getElementById("enrollGo").addEventListener("click", function () {
+      var fam = document.getElementById("famName").value.trim() || "A new family";
+      var child = document.getElementById("childName").value.trim() || "a child";
+      var cid = document.getElementById("classSel").value;
+      var cl = L.classById(cid, d);
+      L.stage("external", "Enrolment confirmation — " + child + " → " + (cl?cl.name:"a class"),
+        fam + " placed " + child + " in " + (cl?cl.name:"a class") + " off the public schedule. Confirmation + welcome email staged.",
+        "A welcome email reaches a family — the send goes behind the fence.", "Welcome (Enrolment AE)");
+      document.getElementById("enrollEcho").innerHTML = "Staged enrolment for " + L.esc(child) + " in " + L.esc(cl?cl.name:"a class") +
+        ". Filed to the Approval Desk — nothing was emailed and no seat was actually taken in the showroom.";
+      L.toast("Enrolment staged to the Approval Desk.", "ok");
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

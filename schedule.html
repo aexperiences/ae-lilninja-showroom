@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Classes &amp; Schedule · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "schedule.html", crumb: "Classes & Schedule" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Classes & Schedule",
+    "The class spine — programs, rooms, days, capacity and fill. Everything else in the gym hangs off it: " +
+    "enrolment, tuition, coverage and the books all read from these rows.",
+    '<button class="btn tang sm" id="consultBtn">Consult the schedule chain</button>'
+  ));
+
+  /* ---- stat row ---- */
+  var rec = d.classes.filter(L.isRecurring);
+  var full = L.fullClasses(d);
+  var light = rec.filter(function (x){ return L.classFill(x) < 0.6; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Active classes", String(d.classes.length), "Across 8 program families") +
+    L.stat("Enrolled spots", String(L.activeEnrollments(d)), "Recurring, non-camp") +
+    L.stat("Avg fill", L.pct(L.fillRate(d)), "Average of per-class fill") +
+    L.stat("Full · waitlist", String(full.length), full.map(function(x){return x.name;}).join(", ") || "None", full.length ? "watch" : "good") +
+    L.stat("Under 60% fill", String(light.length), light.map(function(x){return x.name;}).join(", ") || "None", light.length ? "watch" : "good") +
+    '</div>'));
+
+  /* ---- program filter + the grid ---- */
+  var progOpts = '<option value="">All programs</option>' + L.PROGRAMS.map(function (p) {
+    return '<option value="' + L.esc(p.k) + '">' + L.esc(p.k) + '</option>';
+  }).join("");
+  c.appendChild(L.card(
+    '<div class="between"><div>' +
+      '<h2>The schedule</h2>' +
+      '<div class="card-sub">Every class carries a capacity + fill bar, an assigned coach, a room and a time. ' +
+      'A full class shows its waitlist; an under-filled one is a marketing target, not a cut.</div>' +
+    '</div><div class="row" style="flex:none">' +
+      '<select id="progFilter" style="width:190px">' + progOpts + '</select>' +
+      '<select id="roomFilter" style="width:170px"><option value="">All rooms</option>' +
+        L.ROOMS_PHYS.map(function(r){return '<option value="'+L.esc(r)+'">'+L.esc(r)+'</option>';}).join("") +
+      '</select>' +
+    '</div></div>' +
+    '<div id="grid"></div>'
+  ));
+
+  /* ---- the 47-week note ---- */
+  c.appendChild(L.card(
+    '<h2>How a class is priced</h2>' +
+    '<div class="card-sub">The number on each class is the flat monthly rate billed on the 1st.</div>' +
+    '<div class="fence"><b>47 instructional weeks a year, billed as 12 equal payments.</b> A class does not run ' +
+    '52 weeks and is not charged per session — it runs ' + L.WEEKS_PER_YEAR + ' weeks and is split into ' +
+    L.PAYMENTS_PER_YEAR + ' even monthly payments so a family pays the same every month. That is the math every gym ' +
+    'parent understands and every generic billing tool gets wrong. The full 47-week math lives in Tuition &amp; Billing.</div>'
+  ));
+
+  c.appendChild(L.card(
+    '<h2>Consult the schedule chain</h2>' +
+    '<div class="card-sub">Grid (DH) owns the schedule; Slot (AE) packages the calendar and coach assignments; ' +
+    'Cadence (Pacemaker) is the only voice out of the triad. Demand argues where the waitlist says to add a class; ' +
+    'Room asks whether the room, time and coach actually line up.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Where should we add a class?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Where should we add a class?','Which class is under-filled?','Any room double-booked?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  /* ---- renderers ---- */
+  function renderGrid() {
+    var pf = document.getElementById("progFilter").value;
+    var rf = document.getElementById("roomFilter").value;
+    var rows = d.classes.filter(function (x){
+      return (!pf || x.program === pf) && (!rf || x.room === rf);
+    }).map(function (x) {
+      var fillPct = L.classFill(x) * 100;
+      var cov = L.coverageOf(x, d);
+      var covTag = !cov.ok ? L.tag("coverage risk", "bad")
+        : (cov.expiring.length ? L.tag("cert expiring", "watch") : "");
+      var fillCls = x.enrolled >= x.cap ? "watch" : (fillPct < 60 ? "bad" : "");
+      return '<tr>' +
+        '<td><span class="pchip" style="background:' + L.programColor(x.program) + '">' + L.esc(x.program) + '</span></td>' +
+        '<td><div class="t-main">' + L.esc(x.name) + '</div>' +
+          '<div class="t-sub">' + L.esc(x.ages) + ' · ' + L.esc(x.level) + (x.status ? ' · ' + L.esc(x.status) : '') + '</div></td>' +
+        '<td>' + L.esc(x.room) + '<div class="t-sub">' + L.esc(x.day) + ' · ' + L.esc(x.time) + '</div></td>' +
+        '<td><div class="t-main">' + L.esc(x.coach) + '</div>' + (covTag ? '<div style="margin-top:3px">' + covTag + '</div>' : '') + '</td>' +
+        '<td class="num">' + L.money(x.price) + '<div class="t-sub">/mo</div></td>' +
+        '<td style="min-width:120px"><div class="row" style="gap:6px;flex-wrap:nowrap"><b class="mono">' + x.enrolled + '/' + x.cap + '</b>' +
+          (x.enrolled >= x.cap ? L.tag("full", "watch") : "") + '</div>' + L.bar(fillPct, fillCls === "bad" ? "bad" : "") + '</td>' +
+      '</tr>';
+    }).join("") || '<tr><td colspan="6" class="empty">No classes match that filter.</td></tr>';
+    document.getElementById("grid").innerHTML =
+      '<table><thead><tr><th>Program</th><th>Class</th><th>Room · time</th><th>Coach</th>' +
+      '<th class="num">Tuition</th><th>Fill</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "schedule.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("schedule",q); if(r) renderConsult(r); }
+
+  renderGrid();
+  setTimeout(function () {
+    document.getElementById("progFilter").addEventListener("change", renderGrid);
+    document.getElementById("roomFilter").addEventListener("change", renderGrid);
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

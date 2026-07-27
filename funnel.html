@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enrolment Funnel · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "funnel.html", crumb: "Enrolment Funnel" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Enrolment Funnel",
+    "Leads → tours → trials → enrolled. A walk-in flyer, an Instagram reply and a referral all land here instead of " +
+    "vanishing into a text thread — so the front desk knows exactly who to call back and which under-filled class a " +
+    "trial can fill.",
+    '<button class="btn tang sm" id="consultBtn">Consult the enrolment chain</button>'
+  ));
+
+  var STAGES = ["Lead", "Toured", "Trial booked", "Enrolled"];
+  var byStage = {};
+  STAGES.forEach(function (s){ byStage[s] = d.leads.filter(function (l){ return l.stage === s; }); });
+  var pipeVal = d.leads.filter(function(l){return l.stage!=="Enrolled";}).reduce(function(s,l){return s+l.value;},0);
+
+  c.appendChild(L.card('<div class="statrow">' +
+    STAGES.map(function (s) {
+      return L.stat(s, String(byStage[s].length), s === "Enrolled" ? "This week" : "", s === "Enrolled" ? "good" : "");
+    }).join("") +
+    L.stat("Pipeline / mo", L.money(pipeVal), "Tuition value not yet enrolled", "watch") +
+    '</div>'));
+
+  /* the funnel board */
+  c.appendChild(L.card(
+    '<h2>The funnel</h2>' +
+    '<div class="card-sub">Every lead with its source, the class it wants, and the monthly tuition it represents. ' +
+    'A trial that lands is the cleanest fill for an under-filled class.</div>' +
+    '<table><thead><tr><th>Family / child</th><th>Wants</th><th>Stage</th><th>Source</th><th class="num">Value/mo</th><th></th></tr></thead><tbody>' +
+    d.leads.map(function (l) {
+      var st = l.stage === "Enrolled" ? "good" : (l.stage === "Trial booked" ? "watch" : "ghost");
+      return '<tr><td><div class="t-main">' + L.esc(l.family) + '</div><div class="t-sub">' + L.esc(l.child) + '</div></td>' +
+        '<td>' + L.esc(l.interest) + '</td>' +
+        '<td>' + L.tag(l.stage, st) + '</td>' +
+        '<td class="small muted">' + L.esc(l.source) + '</td>' +
+        '<td class="num">' + L.money(l.value) + '</td>' +
+        '<td><button class="btn ghost sm follow" data-fam="' + L.esc(l.family) + '" data-child="' + L.esc(l.child) + '">Stage follow-up</button></td></tr>';
+    }).join("") + '</tbody></table>' +
+    '<div class="srcnote">Notes: ' + L.esc(d.leads[0].note) + '</div>'
+  ));
+
+  /* newsletter / marketing (Frankie's copy jobs) */
+  c.appendChild(L.card(
+    '<h2>Marketing — Frankie writes, you approve</h2>' +
+    '<div class="card-sub">Frankie drafts class descriptions, welcome and enrolment emails, waitlist notices and the ' +
+    'family newsletter in the gym\'s voice. Every one of those reaches a family, so it drafts and stages — it never sends.</div>' +
+    '<div class="row" style="gap:7px">' +
+      ['Fill the Friday tumbling class','Family newsletter — August','Winter camp announcement'].map(function (s) {
+        return '<button class="btn ghost sm draft" data-t="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="draftEcho" class="muted small" style="margin-top:10px"></div>' +
+    '<div class="fence" style="margin-top:12px"><b>Ghost Mode.</b> A draft is a draft. Nothing is emailed or posted — ' +
+    'it stages to the Approval Desk for the owner to read, edit and send.</div>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult the enrolment chain</h2>' +
+    '<div class="card-sub">The funnel routes to the same Front Desk · Enrolment chain — Fill argues which lead or ' +
+    'open seat actually grows the gym; Fit asks whether the child suits the class.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which trial fills an under-filled class?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which lead should we call back?','What fills the Friday tumbling class?','How many trials are booked?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "enroll.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("enroll",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".follow"), function (b) {
+      b.addEventListener("click", function () {
+        L.stage("external", "Follow up — " + this.dataset.fam,
+          "Call/email " + this.dataset.fam + " (" + this.dataset.child + ") to move them down the funnel.",
+          "Reaches a family — the outreach goes behind the fence.", "Welcome (Enrolment AE)");
+        this.disabled = true; this.textContent = "Staged ✓";
+        L.toast("Follow-up staged — nothing was sent.", "ok");
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".draft"), function (b) {
+      b.addEventListener("click", function () {
+        L.stage("external", "Marketing draft — " + this.dataset.t,
+          "Frankie drafted \"" + this.dataset.t + "\" in the gym's voice. Ready for the owner to read, edit and send.",
+          "Publishing or emailing reaches families — the send goes behind the fence.", "Frankie (COO)");
+        document.getElementById("draftEcho").innerHTML = "Draft \"" + L.esc(this.dataset.t) + "\" staged to the Approval Desk. Nothing was sent or posted.";
+        L.toast("Draft staged — Ghost Mode holds the send.", "ok");
+      });
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Approval Desk · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "approvals.html", crumb: "Approval Desk" });
+
+  c.appendChild(L.page(
+    "Approval Desk",
+    "Ghost Mode. Nothing in this hub sends, spends, publishes or moves money on its own — anything that would is " +
+    "staged here for the owner. The org clears everything it honestly can, so a desk trending toward empty is the " +
+    "autonomy scoreboard, not a backlog.",
+    '<button class="btn ghost sm" id="reseed">Restage the samples</button>'
+  ));
+
+  c.appendChild(L.card(
+    '<h2>What lands on this desk</h2>' +
+    '<div class="fence"><b>Only true fences reach the owner.</b> A send to a family, a spend, a published price, the ' +
+    '1st-of-month autopay batch, pulling a coach, or routing a matter to an attorney. Approving here does <b>not</b> ' +
+    'send, charge or publish anything — this is a showroom. It marks the item so you can see the gate work.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      L.tag("send", "watch") + L.tag("spend / move money", "watch") + L.tag("publish a price", "watch") +
+      L.tag("book or pull a person", "watch") + L.tag("route to an attorney", "watch") +
+    '</div>'
+  ));
+
+  var deskCard = L.card('<div class="between"><div><h2>Waiting on you</h2>' +
+    '<div class="card-sub">Each item names who staged it and the fence it is behind.</div></div>' +
+    '<div id="counts"></div></div><div id="desk"></div>');
+  c.appendChild(deskCard);
+
+  function render() {
+    var items = L.approvals();
+    var pend = items.filter(function (a){ return a.state === "Pending"; });
+    document.getElementById("counts").innerHTML =
+      L.tag(pend.length + " pending", pend.length ? "watch" : "good") +
+      L.tag(items.length - pend.length + " decided", "ghost");
+    if (!items.length) {
+      document.getElementById("desk").innerHTML = '<div class="empty">The desk is empty. That is the goal.</div>';
+      return;
+    }
+    document.getElementById("desk").innerHTML =
+      '<table><thead><tr><th>Item</th><th>Fence</th><th>Staged by</th><th>State</th><th></th></tr></thead><tbody>' +
+      items.map(function (a) {
+        var decided = a.state !== "Pending";
+        var stateTag = a.state === "Approved" ? L.tag("Approved", "good") : (a.state === "Declined" ? L.tag("Declined", "bad") : L.tag("Pending", "watch"));
+        return '<tr><td><div class="t-main">' + L.esc(a.title) + '</div><div class="t-sub">' + L.esc(a.summary) + '</div></td>' +
+          '<td>' + L.tag(a.kind, "ghost") + '<div class="t-sub">' + L.esc(a.why) + '</div></td>' +
+          '<td class="small muted">' + L.esc(a.by) + '</td>' +
+          '<td>' + stateTag + '</td>' +
+          '<td>' + (decided ? '' :
+            '<div class="row" style="gap:6px;flex-wrap:nowrap">' +
+              '<button class="btn teal sm ok" data-id="' + L.esc(a.id) + '">Approve</button>' +
+              '<button class="btn ghost sm no" data-id="' + L.esc(a.id) + '">Decline</button></div>') + '</td></tr>';
+      }).join("") + '</tbody></table>';
+    Array.prototype.forEach.call(document.querySelectorAll(".ok"), function (b) {
+      b.addEventListener("click", function () {
+        L.decideApproval(this.dataset.id, "Approved"); render();
+        L.toast("Marked approved. In the showroom nothing was actually sent, charged or published.", "ok");
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".no"), function (b) {
+      b.addEventListener("click", function () {
+        L.decideApproval(this.dataset.id, "Declined"); render();
+        L.toast("Declined. The staged action is dropped.", "ok");
+      });
+    });
+  }
+
+  render();
+  setTimeout(function () {
+    document.getElementById("reseed").addEventListener("click", function () {
+      L.resetFloor(); L.toast("Floor reset — the sample fences are back on the desk.", "ok");
+      setTimeout(function(){ location.reload(); }, 450);
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

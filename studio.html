@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Floor Studio · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "studio.html", crumb: "Floor Studio" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Floor Studio",
+    "Skills, levels and progressions — plus two planners every coach can read at a glance: a rotation wheel and a " +
+    "floor-capacity check. The capacity numbers are the gym's own policy inputs, verified against the insurer and " +
+    "state rules, never asserted here.",
+    '<button class="btn tang sm" id="consultBtn">Consult the skills chain</button>'
+  ));
+
+  /* level ladder */
+  c.appendChild(L.card(
+    '<h2>The level ladder</h2>' +
+    '<div class="card-sub">Every recurring class sits on a level. A group clears the skills check for the next rung, ' +
+    'then moves up — and the seats it frees open to the waitlist below it.</div>' +
+    '<table><thead><tr><th>Class</th><th>Program</th><th>Level</th><th>Ages</th><th class="num">Fill</th></tr></thead><tbody>' +
+    d.classes.filter(L.isRecurring).map(function (x) {
+      return '<tr><td class="t-main">' + L.esc(x.name) + '</td>' +
+        '<td><span class="pchip" style="background:' + L.programColor(x.program) + '">' + L.esc(x.program) + '</span></td>' +
+        '<td>' + L.tag(x.level, "ghost") + '</td><td>' + L.esc(x.ages) + '</td>' +
+        '<td class="num">' + Math.round(L.classFill(x)*100) + '%</td></tr>';
+    }).join("") + '</tbody></table>' +
+    '<div class="fence" style="margin-top:12px"><b>Three Ninja Warriors athletes have cleared the Elite skills check.</b> ' +
+    'Move them up and the seats they leave open to the Warriors waitlist — the Floor Studio hands that to Enrolment.</div>'
+  ));
+
+  /* rotation planner */
+  c.appendChild(L.card(
+    '<h2>Rotation planner</h2>' +
+    '<div class="card-sub">Stations × minutes × groups → a class length every coach can run. One coach per station ' +
+    'while rotating.</div>' +
+    '<div class="grid g4" style="margin-bottom:12px">' +
+      '<div><label class="f">Stations</label><select id="stations"><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>' +
+      '<div><label class="f">Minutes / station</label><input id="mins" type="number" value="8" min="2" step="1"></div>' +
+      '<div><label class="f">Warm-up (min)</label><input id="warm" type="number" value="8" min="0" step="1"></div>' +
+      '<div><label class="f">Closing circle (min)</label><input id="close" type="number" value="4" min="0" step="1"></div>' +
+    '</div>' +
+    '<div id="rotOut"></div>'
+  ));
+
+  /* capacity check */
+  c.appendChild(L.card(
+    '<h2>Floor capacity check <span class="tag watch mono">PLANNING AID</span></h2>' +
+    '<div class="card-sub">Room size + your ratios → how many athletes a class can safely hold.</div>' +
+    '<div class="grid g4" style="margin-bottom:12px">' +
+      '<div><label class="f">Floor length (ft)</label><input id="len" type="number" value="60" min="10"></div>' +
+      '<div><label class="f">Floor width (ft)</label><input id="wid" type="number" value="40" min="10"></div>' +
+      '<div><label class="f">Sq ft / athlete (policy)</label><input id="sqft" type="number" value="35" min="10"></div>' +
+      '<div><label class="f">Athletes / coach (policy)</label><input id="ratio" type="number" value="6" min="1"></div>' +
+    '</div>' +
+    '<div id="capOut"></div>' +
+    '<div class="fence" style="margin-top:12px"><b>These are YOUR policy numbers.</b> Sq-ft-per-athlete and ' +
+    'athletes-per-coach are the gym\'s own inputs. Verify them against your state licensing rules, your insurer\'s ' +
+    'requirements and USA Gymnastics guidance before you publish a class size — the Floor Studio calculates, it does ' +
+    'not set the rule.</div>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult the skills chain</h2>' +
+    '<div class="card-sub">Ladder (DH) owns progression; Rung (AE) packages the skills checklist and level moves; ' +
+    'Ready (Pacemaker) releases a level-up at 80% of the skills cleared. Progress argues who is ready to move up; ' +
+    'Ratio asks whether the floor holds the class safely at this size.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which group is ready to move up?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which group is ready to move up?','How many stations should we run?','Is the floor plan safe at this size?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  var STATIONS = ["VAULT","BARS","BEAM","FLOOR","TRAMP","PIT"];
+  function renderRotation() {
+    var st = Number(document.getElementById("stations").value);
+    var m = Number(document.getElementById("mins").value);
+    var w = Number(document.getElementById("warm").value);
+    var cl = Number(document.getElementById("close").value);
+    var total = w + st*m + cl;
+    document.getElementById("rotOut").innerHTML =
+      '<div class="statrow">' +
+        L.stat("Class length", total + " min", "Warm-up " + w + " + " + st + "×" + m + " + close " + cl) +
+        L.stat("Coaches needed", String(st), "One per station while rotating") +
+        L.stat("Stations", STATIONS.slice(0, st).join(" · "), "Rotate on a whistle + 30-second reset") +
+      '</div>';
+  }
+  function renderCapacity() {
+    var l = Number(document.getElementById("len").value), w = Number(document.getElementById("wid").value);
+    var sqft = Number(document.getElementById("sqft").value), ratio = Number(document.getElementById("ratio").value);
+    var gross = l*w, openArea = gross*0.6;
+    var maxA = Math.floor(openArea / sqft), coaches = Math.ceil(maxA / ratio);
+    document.getElementById("capOut").innerHTML =
+      '<div class="statrow">' +
+        L.stat("Gross floor", gross.toLocaleString() + " sq ft", l + " × " + w) +
+        L.stat("Open (60%)", Math.round(openArea).toLocaleString() + " sq ft", "40% assumed taken by equipment") +
+        L.stat("Max athletes", String(maxA), "Open area ÷ " + sqft + " sq ft each", "watch") +
+        L.stat("Coaches at ratio", String(coaches), "At " + ratio + " athletes / coach") +
+      '</div>';
+  }
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "studio.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("studio",q); if(r) renderConsult(r); }
+
+  renderRotation(); renderCapacity();
+  setTimeout(function () {
+    ["stations","mins","warm","close"].forEach(function(id){ document.getElementById(id).addEventListener("input", renderRotation); });
+    ["len","wid","sqft","ratio"].forEach(function(id){ document.getElementById(id).addEventListener("input", renderCapacity); });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

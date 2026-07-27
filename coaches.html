@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coaches &amp; Certifications · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "coaches.html", crumb: "Coaches & Certifications" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Coaches & Certifications",
+    "Who teaches what — and the expiry-dated certifications that decide who can be on the floor. A lapsed required " +
+    "cert on an assigned coach is this gym's stop-work event, the way a lapsed seal is for an architect. It is a hard " +
+    "gate, not a reminder.",
+    '<button class="btn tang sm" id="consultBtn">Consult the coverage chain</button>'
+  ));
+
+  /* ---- the rights-gate fence ---- */
+  var risks = L.coverageRisks(d);
+  var lapsed = risks.filter(function (r){ return !r.cov.ok; });
+  var expiring = risks.filter(function (r){ return r.cov.ok && r.cov.expiring.length; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Coaches", String(d.coaches.length), "On the floor roster") +
+    L.stat("Classes gated", String(lapsed.length), "Coach has a LAPSED required cert", lapsed.length ? "bad" : "good") +
+    L.stat("Certs expiring", String(expiring.length), "Inside " + L.EXPIRING_WINDOW_DAYS + " days", expiring.length ? "watch" : "good") +
+    L.stat("Cleared classes", String(d.classes.filter(L.isRecurring).length - risks.length), "Cleared coach on the floor", "good") +
+    '</div>'));
+
+  c.appendChild(L.card(
+    '<h2>Why certifications gate the floor</h2>' +
+    '<div class="card-sub">Every other staff detail can slip a week. This one cannot — because it is a child\'s ' +
+    'safety and the gym\'s insurance in one line.</div>' +
+    '<div class="fence"><b>A coach cannot be assigned to a class while a required cert is lapsed.</b> Every floor ' +
+    'coach needs current CPR/First Aid, a Background check and SafeSport. On top of that, gymnastics needs USAG, ' +
+    'ninja needs Ninja L2, cheer needs USASF, STEAM needs a STEM Ed cert. If any required cert has expired, the ' +
+    'coach is pulled from that class until it is renewed — the same way a lapsed license stops an architect from ' +
+    'sealing drawings.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' +
+      L.tag("Renewal date", "ghost") + '<span class="muted">→ drives →</span>' +
+      L.tag("Cert current?", "watch") + '<span class="muted">→ drives →</span>' +
+      L.tag("Cleared to be on the floor", "good") +
+    '</div>' +
+    '<div class="srcnote" style="font-style:normal;margin-top:10px">Cert names and expiry dates are the ones on ' +
+    'each coach\'s record in this hub. What each issuing body requires at renewal is confirmed with that body, not here.</div>'
+  ));
+
+  /* ---- coverage-at-risk table (the gate in action) ---- */
+  var riskRows = risks.map(function (r) {
+    var bad = !r.cov.ok;
+    var detail = bad ? "Lapsed: " + r.cov.lapsed.join(", ") : "Expiring: " + r.cov.expiring.join(", ");
+    return '<tr>' +
+      '<td><div class="t-main">' + L.esc(r.cls.name) + '</div><div class="t-sub">' + L.esc(r.cls.program) + ' · ' + L.esc(r.cls.day) + ' ' + L.esc(r.cls.time) + '</div></td>' +
+      '<td>' + L.esc(r.cls.coach) + '</td>' +
+      '<td>' + L.tag(bad ? "cannot be on floor" : "renew soon", bad ? "bad" : "watch") + '</td>' +
+      '<td class="small muted">' + L.esc(detail) + '</td>' +
+      '<td><button class="btn ghost sm stage" data-cls="' + L.esc(r.cls.name) + '" data-coach="' + L.esc(r.cls.coach) + '" data-bad="' + (bad?"1":"0") + '">Stage to Approval Desk</button></td>' +
+    '</tr>';
+  }).join("") || '<tr><td colspan="5" class="empty">Every class has a cleared coach. Nothing to gate.</td></tr>';
+  c.appendChild(L.card(
+    '<h2>Coverage at risk — the gate in action</h2>' +
+    '<div class="card-sub">These classes have a coach whose required cert is lapsed or expiring. A lapsed one is a ' +
+    'hard stop; staging it files the coverage problem for the owner without pulling anyone silently.</div>' +
+    '<table><thead><tr><th>Class</th><th>Assigned coach</th><th>Status</th><th>Why</th><th></th></tr></thead>' +
+    '<tbody>' + riskRows + '</tbody></table>'
+  ));
+
+  /* ---- full coach cert board ---- */
+  c.appendChild(L.card(
+    '<h2>The cert board</h2>' +
+    '<div class="card-sub">Every coach, every certification, and its expiry. Current is teal, expiring soon is ' +
+    'tangerine, lapsed is flagged.</div>' +
+    '<div id="board"></div>'
+  ));
+
+  function certPill(ct) {
+    var kind = ct.status === "lapsed" ? "bad" : (ct.status === "expiring" ? "watch" : "good");
+    var label = ct.name + " · " + ct.exp + (ct.status === "lapsed" ? " (lapsed)" : ct.status === "expiring" ? " (" + ct.days + "d)" : "");
+    return L.tag(label, kind);
+  }
+  function renderBoard() {
+    document.getElementById("board").innerHTML = d.coaches.map(function (co) {
+      var certs = L.coachCerts(co);
+      var classes = d.classes.filter(function (x){ return x.coach === co.name; });
+      var anyLapsed = certs.some(function (ct){ return ct.status === "lapsed"; });
+      return '<div class="card" style="border-left:3px solid ' + (anyLapsed ? "var(--bad)" : "var(--a-coaches)") + ';margin-bottom:12px">' +
+        '<div class="between"><div><div class="t-main" style="font-size:14px">' + L.esc(co.name) + '</div>' +
+          '<div class="t-sub">' + L.esc(co.role) + ' · teaches ' + (classes.length ? classes.map(function(x){return L.esc(x.name);}).join(", ") : "—") + '</div></div>' +
+          '<div>' + (anyLapsed ? L.tag("cannot be on floor", "bad") : L.tag("cleared", "good")) + '</div></div>' +
+        '<div class="divider"></div>' +
+        '<div class="row" style="gap:7px">' + certs.map(certPill).join("") + '</div></div>';
+    }).join("");
+  }
+
+  /* ---- consult ---- */
+  c.appendChild(L.card(
+    '<h2>Consult the coverage chain</h2>' +
+    '<div class="card-sub">Whistle (DH) owns coverage; Badge (AE) packages who teaches what and every cert; ' +
+    'Cleared (Pacemaker) treats a lapsed required cert as a hard stop, not a judgement. Cover asks who can be on the ' +
+    'floor today; Current asks whether every required cert is current with the expiry to prove it.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Is any coach on the floor with a lapsed cert?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Is any coach on the floor with a lapsed cert?','Whose cert renews soon?','Who can cover cheer?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "coaches.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("coaches",q); if(r) renderConsult(r); }
+
+  renderBoard();
+  setTimeout(function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".stage"), function (b) {
+      b.addEventListener("click", function () {
+        var bad = this.dataset.bad === "1";
+        L.stage("people", (bad ? "Pull coach — " : "Cert renewal — ") + this.dataset.coach + " · " + this.dataset.cls,
+          this.dataset.coach + " is assigned to " + this.dataset.cls + " with a " + (bad ? "LAPSED" : "expiring") + " required cert. " +
+          (bad ? "Recommend pulling from the floor until renewed." : "Recommend booking the renewal now."),
+          "A coach's floor assignment and a renewal touch a person and the insurer — staged for the owner, not auto-run.",
+          "Whistle (Coaches DH)");
+        this.disabled = true; this.textContent = "Staged ✓";
+        L.toast("Staged to the Approval Desk — nobody was pulled or notified.", "ok");
+      });
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

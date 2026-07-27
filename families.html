@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Families &amp; Kids · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "families.html", crumb: "Families & Kids" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Families & Kids",
+    "Accounts, minors, and a waiver + consent on file for every child, every session. This is the net-new gate over " +
+    "a plain roster: a child on the floor with no signed waiver is the one family gap that can't wait a week.",
+    '<button class="btn tang sm" id="consultBtn">Consult the families chain</button>'
+  ));
+
+  var kids = d.families.reduce(function (s,f){ return s + (f.kids||[]).length; }, 0);
+  var gaps = L.enrolledWithoutWaiver(d);
+  var manual = d.families.filter(function (f){ return !f.autopay; });
+  var unpaidReg = d.families.filter(function (f){ return !f.registrationPaid; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Families", String(d.families.length), "Active accounts") +
+    L.stat("Kids", String(kids), "Minors on file") +
+    L.stat("Waiver gaps (enrolled)", String(gaps.length), gaps.map(function(g){return g.child;}).join(", ") || "None", gaps.length ? "bad" : "good") +
+    L.stat("Manual pay", String(manual.length), manual.map(function(f){return f.family;}).join(", ") || "None", manual.length ? "watch" : "good") +
+    L.stat("Registration unpaid", String(unpaidReg.length), unpaidReg.map(function(f){return f.family;}).join(", ") || "None", unpaidReg.length ? "watch" : "good") +
+    '</div>'));
+
+  /* the consent gate */
+  c.appendChild(L.card(
+    '<h2>The waiver gate <span class="tag bad mono">EVERY CHILD, EVERY SESSION</span></h2>' +
+    '<div class="card-sub">A signed liability waiver and media consent, tracked per child on the family record.</div>' +
+    '<div class="fence"><b>' + (gaps.length ? gaps.map(function(g){return g.child+" ("+g.family+")";}).join(", ") + ' is enrolled with no signed waiver on file.' : 'Every enrolled minor has a signed waiver on file.') + '</b> ' +
+    'A child cannot be on the floor without one — it is the child\'s safety and the gym\'s insurance in a single ' +
+    'line. Chase the signature before the next session; the enforceable form itself is a legal question routed to ' +
+    'Law · Waivers.</div>'
+  ));
+
+  /* families table */
+  c.appendChild(L.card(
+    '<h2>Family accounts</h2>' +
+    '<div class="card-sub">Each household, its kids, and the waiver + consent status per child.</div>' +
+    '<div id="famList"></div>'
+  ));
+
+  function renderFams() {
+    document.getElementById("famList").innerHTML = d.families.map(function (f) {
+      var bill = L.familyBill(f.family, d);
+      var kidPills = (f.kids||[]).map(function (k) {
+        var w = k.waiver ? L.tag("waiver ✓", "good") : L.tag("waiver missing", "bad");
+        var m = k.mediaConsent ? L.tag("media ✓", "ghost") : L.tag("no media consent", "ghost");
+        return '<div class="row" style="gap:6px;margin:3px 0"><b>' + L.esc(k.name) + '</b> ' + w + ' ' + m + '</div>';
+      }).join("");
+      return '<div class="card" style="border-left:3px solid var(--a-families);margin-bottom:12px">' +
+        '<div class="between"><div><div class="t-main" style="font-size:14px">' + L.esc(f.family) + '</div>' +
+          '<div class="t-sub">' + L.esc(f.parent) + ' · ' + L.esc(f.phone) + ' · ' + L.esc(f.email) + '</div></div>' +
+          '<div class="row" style="gap:6px">' + L.tag(f.autopay ? "autopay" : "manual", f.autopay ? "good" : "watch") +
+            (f.registrationPaid ? L.tag("reg paid","ghost") : L.tag("reg unpaid","bad")) +
+            (bill.children.length ? L.tag(L.money(bill.net) + "/mo","ghost") : "") + '</div></div>' +
+        '<div class="divider"></div>' + kidPills +
+        (f.notes ? '<div class="srcnote" style="font-style:normal">' + L.esc(f.notes) + '</div>' : '') + '</div>';
+    }).join("");
+  }
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult the families chain</h2>' +
+    '<div class="card-sub">Household (DH) owns the family account; Folder (AE) packages minor records and the ' +
+    'waiver/consent tracking; Consent (Pacemaker) treats a missing minor waiver as a hard flag. Service asks what the ' +
+    'household needs; OnFile asks whether every minor\'s waiver is signed and current.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Is any enrolled child missing a waiver?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Is any enrolled child missing a waiver?','Who is on manual pay?','How many kids are on file?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "families.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("families",q); if(r) renderConsult(r); }
+
+  renderFams();
+  setTimeout(function () {
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR · People Ops · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "hr.html", crumb: "HR · People Ops" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "HR · People Ops",
+    "The roster — human and AI seats side by side — and the compliance line a gym actually gets audited on: coach " +
+    "certifications and background checks. A lapsed cert is not a personnel-file note; it is a floor-coverage event, " +
+    "the same shape as a lapsed license in a licensed practice.",
+    '<button class="btn tang sm" id="consultBtn">Consult HR · People Ops</button>'
+  ));
+
+  var humans = d.staff.filter(function (t){ return t.type === "Human"; });
+  var ai = d.staff.filter(function (t){ return t.type !== "Human"; });
+  var onboarding = d.staff.filter(function (t){ return t.status === "Onboarding"; });
+  var risks = L.coverageRisks(d);
+  var lapsed = risks.filter(function (r){ return !r.cov.ok; });
+  var expiring = risks.filter(function (r){ return r.cov.ok && r.cov.expiring.length; });
+
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Human seats", String(humans.length), "Coaches, front desk, owner") +
+    L.stat("AI seats", String(ai.length), "Carry a department, a bar and a fence") +
+    L.stat("Cert lapsed", String(lapsed.length), lapsed.length ? "Coverage event" : "Clear", lapsed.length ? "bad" : "good") +
+    L.stat("Cert expiring", String(expiring.length), "Inside " + L.EXPIRING_WINDOW_DAYS + " days", expiring.length ? "watch" : "good") +
+    L.stat("Onboarding", String(onboarding.length), onboarding.map(function(t){return t.name;}).join(", ") || "None") +
+    '</div>'));
+
+  /* the compliance fence */
+  c.appendChild(L.card(
+    '<h2>Why certs sit at the top of this room</h2>' +
+    '<div class="fence"><b>A lapsed cert is a stop-work event, not an HR nicety.</b> A coach whose CPR, background or ' +
+    'SafeSport has lapsed cannot be on the floor — the exposure is a child\'s safety and the gym\'s insurance, not a ' +
+    'note in a file. Coach Jordan\'s CPR lapsed while assigned to three cheer classes, and Coach Mia\'s renews inside ' +
+    'the window. Both belong on the coverage board, not the to-do list.</div>' +
+    '<div class="divider"></div>' +
+    '<div class="row" style="gap:7px">' + L.tag("Renewal date","ghost") + '<span class="muted">→ drives →</span>' +
+    L.tag("Cert current?","watch") + '<span class="muted">→ drives →</span>' + L.tag("Cleared for the floor","good") + '</div>'
+  ));
+
+  /* roster */
+  c.appendChild(L.card(
+    '<h2>The roster — one list</h2>' +
+    '<div class="card-sub">The org keeps one org chart. A human seat carries certifications and a personnel record; ' +
+    'an AI seat carries a department, a confidence bar and a fence. Both do work the gym depends on.</div>' +
+    '<table><thead><tr><th>Seat</th><th>Type</th><th>Dept</th><th>Status</th><th>Certs / compliance</th><th>On the record</th></tr></thead><tbody>' +
+    d.staff.map(function (t) {
+      var isHuman = t.type === "Human";
+      var certCell = "—";
+      if (t.coachId) {
+        var co = d.coaches.filter(function(x){return x.id===t.coachId;})[0];
+        if (co) certCell = L.coachCerts(co).map(function (ct) {
+          return L.tag(ct.name + (ct.status==="lapsed"?" ✕":ct.status==="expiring"?" ⏳":""), ct.status==="lapsed"?"bad":ct.status==="expiring"?"watch":"good");
+        }).join(" ");
+      } else if (!isHuman) { certCell = '<span class="muted small">Not applicable — AI seat</span>'; }
+      else { certCell = '<span class="muted small">No cert on the record</span>'; }
+      return '<tr><td><div class="t-main">' + L.esc(t.name) + '</div><div class="t-sub">' + L.esc(t.role) + '</div></td>' +
+        '<td>' + L.tag(isHuman ? "Human" : t.type, isHuman ? "good" : "ghost") + '</td>' +
+        '<td class="small muted">' + L.esc(t.dept) + '</td>' +
+        '<td>' + L.tag(t.status, t.status==="Active"?"good":"watch") + '</td>' +
+        '<td style="min-width:180px">' + certCell + '</td>' +
+        '<td class="small muted">' + L.esc(t.note) + '</td></tr>';
+    }).join("") + '</tbody></table>'
+  ));
+
+  /* offboarding fence */
+  c.appendChild(L.card(
+    '<h2>Offboarding</h2>' +
+    '<div class="card-sub">Every people action on this page clears on its own except this one.</div>' +
+    '<div class="fence"><b>A termination is never auto-run.</b> Balance, the HR pacemaker, releases people decisions ' +
+    'at its bar like any department — but ending someone\'s employment always routes to a human. The control below ' +
+    'stages it to the Approval Desk with the reason attached; the org will not execute it and no one is told.</div>' +
+    '<div class="grid g3" style="margin:13px 0 0">' +
+      '<div><label class="f">Seat</label><select id="offWho">' + d.staff.map(function(t){return '<option value="'+L.esc(t.id)+'">'+L.esc(t.name)+' — '+L.esc(t.role)+'</option>';}).join("") + '</select></div>' +
+      '<div><label class="f">Reason on the record</label><input id="offWhy" placeholder="e.g. end of season"></div>' +
+      '<div><label class="f">&nbsp;</label><div class="row"><button class="btn ghost" id="offGo">Stage to the Approval Desk</button></div></div>' +
+    '</div>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult HR · People Ops</h2>' +
+    '<div class="card-sub">Hale (DH) owns the team\'s health; Roster (AE) packages offers, checklists and cert/' +
+    'background tracking; Balance (Pacemaker) routes a termination to a human every time. Bench argues for the talent ' +
+    'to cover the board; Record asks whether every cert, background and W-4 is current and defensible.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Whose cert is about to lapse?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Whose cert is about to lapse?','Do we need to hire?','Who is mid-onboarding?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "hr.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("hr",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    document.getElementById("offGo").addEventListener("click", function () {
+      var id = document.getElementById("offWho").value, why = document.getElementById("offWhy").value.trim();
+      var seat = d.staff.filter(function(t){return t.id===id;})[0];
+      if (!seat) { L.toast("No seat selected.",""); return; }
+      L.stage("people", "Offboarding — " + seat.name,
+        seat.name + " · " + seat.role + " · " + seat.dept + ". Reason: " + (why||"not stated") + ". Staged for review only.",
+        "Ending employment is never auto-run — Balance routes every termination to a human.", "Roster (HR AE)");
+      L.toast("Offboarding staged. Nothing was executed.", "ok");
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

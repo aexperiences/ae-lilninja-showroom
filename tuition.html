@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tuition &amp; Billing · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "tuition.html", crumb: "Tuition & Billing" });
+  var d = L.db();
+  var rk = L.revenueKept(d);
+
+  c.appendChild(L.page(
+    "Tuition & Billing",
+    "The money spine. A kids gym is a subscription business wearing a class schedule — recurring tuition on the 1st, " +
+    "sibling and multi-class discounts, autopay, MRR by program, and the tuition the gym keeps because LilNinja never " +
+    "takes a cut. Every figure is computed from the schedule and the family records.",
+    '<button class="btn tang sm" id="consultBtn">Consult the money chain</button>'
+  ));
+
+  /* ---- the headline row ---- */
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("MRR (recurring)", L.money(rk.mrr), L.activeEnrollments(d) + " active enrolments") +
+    L.stat("Avg tuition", L.money(L.avgTuition(d)), "MRR ÷ active enrolments") +
+    L.stat("Autopay adoption", L.pct(L.autopayPct(d)), d.families.filter(function(f){return f.autopay;}).length + " of " + d.families.length + " families") +
+    L.stat("Revenue Kept / yr", L.money(rk.annual), "Not taken as a per-family cut", "good") +
+    '</div>'));
+
+  /* ---- the 47-week math ---- */
+  var sampleClasses = ["g3","c2","p1"].map(function (id){ return L.classById(id, d); });
+  var wkRows = sampleClasses.map(function (x) {
+    return '<tr><td><div class="t-main">' + L.esc(x.name) + '</div><div class="t-sub">' + L.esc(x.program) + '</div></td>' +
+      '<td class="num">' + L.money(x.price) + '</td>' +
+      '<td class="num">' + L.money(L.annualTuition(x.price)) + '</td>' +
+      '<td class="num">$' + L.weeklyEquivalent(x.price).toFixed(2) + '</td></tr>';
+  }).join("");
+  c.appendChild(L.card(
+    '<h2>The 47-week rate, done honestly</h2>' +
+    '<div class="card-sub">A program runs ' + L.WEEKS_PER_YEAR + ' instructional weeks a year and is billed as ' +
+    L.PAYMENTS_PER_YEAR + ' equal monthly payments — not 52 weeks, not per session. The monthly rate is the annual ' +
+    'tuition split into twelve, so a family pays the same every month even though class weeks vary.</div>' +
+    '<table><thead><tr><th>Class</th><th class="num">Monthly (billed 1st)</th><th class="num">Annual (× 12)</th>' +
+    '<th class="num">Per class-week (÷ 47)</th></tr></thead><tbody>' + wkRows + '</tbody></table>' +
+    '<div class="srcnote">Basis: the flat 47-week rate from the Momentum feature set; the 12-payment split is the ' +
+    'standard studio convention. Math shown so the number is never a black box.</div>'
+  ));
+
+  /* ---- family billing with discounts ---- */
+  var bills = L.allBills(d);
+  var billRows = bills.map(function (b) {
+    var fam = d.families.filter(function (f){ return f.family === b.family; })[0] || {};
+    var kids = b.children.length, extra = kids > 1;
+    return '<tr>' +
+      '<td><div class="t-main">' + L.esc(b.family) + '</div>' +
+        '<div class="t-sub">' + b.children.map(function(ch){return L.esc(ch.name)+" ("+ch.classes.length+")";}).join(", ") + '</div></td>' +
+      '<td>' + L.tag(fam.autopay ? "autopay" : "manual", fam.autopay ? "good" : "watch") +
+        (fam.registrationPaid ? "" : ' <span style="margin-left:4px">' + L.tag("reg unpaid","bad") + '</span>') + '</td>' +
+      '<td class="num">' + L.money(b.gross) + '</td>' +
+      '<td class="num">' + (b.discount ? '<b style="color:var(--bad)">−' + L.money(b.discount) + '</b>' : "—") + '</td>' +
+      '<td class="num"><b>' + L.money(b.net) + '</b></td></tr>';
+  }).join("");
+  var grossAll = bills.reduce(function(s,b){return s+b.gross;},0);
+  var discAll = bills.reduce(function(s,b){return s+b.discount;},0);
+  var netAll = bills.reduce(function(s,b){return s+b.net;},0);
+  c.appendChild(L.card(
+    '<h2>Family billing — sibling &amp; multi-class discounts</h2>' +
+    '<div class="card-sub">Real rules, applied honestly: each additional child in a family gets ' + L.DISCOUNTS.siblingPct +
+    '% off, and each extra class for a single child gets ' + L.DISCOUNTS.multiClassPct + '% off. Registration is $' +
+    L.DISCOUNTS.registration + '/child/yr. The Alvarez family is the case that exercises both.</div>' +
+    '<table><thead><tr><th>Family</th><th>Pay</th><th class="num">Gross</th><th class="num">Discount</th>' +
+    '<th class="num">Net / mo</th></tr></thead><tbody>' + billRows +
+    '<tr><td><b>Named families</b></td><td></td><td class="num"><b>' + L.money(grossAll) + '</b></td>' +
+    '<td class="num"><b style="color:var(--bad)">−' + L.money(discAll) + '</b></td><td class="num"><b>' + L.money(netAll) + '</b></td></tr>' +
+    '</tbody></table>' +
+    '<div class="srcnote">Discounts apply to the named families the billing engine can see. MRR-by-program above ' +
+    'uses list price × enrolled headcount, the way a gym reports revenue by program.</div>'
+  ));
+
+  /* ---- Revenue Kept detail ---- */
+  c.appendChild(L.card(
+    '<h2>Revenue Kept — the positioning</h2>' +
+    '<div class="card-sub">The line that sells this vertical: LilNinja OS doesn\'t take a cut of your tuition.</div>' +
+    '<div class="grid g2">' +
+      '<div><div class="statrow">' +
+        L.stat("Active students", String(rk.students), "Recurring headcount") +
+        L.stat("Est. per-student cut", "$" + rk.perStudent.toFixed(2), "/student/mo — a per-family platform", "watch") +
+        L.stat("Kept / mo", L.money(rk.monthly), "≈ " + rk.pctOfMRR.toFixed(1) + "% of MRR", "good") +
+        L.stat("Kept / yr", L.money(rk.annual), "Stays in the gym", "good") +
+      '</div></div>' +
+      '<div><div class="fence teal"><b>LilNinja OS charges one flat white-label license.</b> A per-family platform ' +
+      'takes a slice of every active student, every month. On ' + rk.students + ' students that is ~' + L.money(rk.annual) +
+      '/yr that instead clears straight to the gym\'s own account.</div>' +
+      '<div class="srcnote" style="font-style:normal;margin-top:10px">The $' + rk.perStudent.toFixed(2) +
+      '/student/mo is an ESTIMATE, tagged as an assumption — vendors publish tiered per-student pricing, not one flat ' +
+      'rate. Replace it with the gym\'s actual competitor quote before this number goes to a customer.</div></div>' +
+    '</div>'
+  ));
+
+  /* ---- autopay batch (the fence) ---- */
+  c.appendChild(L.card(
+    '<h2>The 1st-of-month autopay batch</h2>' +
+    '<div class="card-sub">Everything on this page computes without a fence — except moving money.</div>' +
+    '<div class="fence"><b>Running the charge is a fence.</b> Charging cards on the 1st moves real money, so the org ' +
+    'never runs it — it stages the batch to the Approval Desk for the owner. In this showroom the processor is ' +
+    'stubbed and no card is ever charged.</div>' +
+    '<div class="row" style="margin-top:12px"><button class="btn ghost" id="stageBatch">Stage the autopay batch</button>' +
+    '<span class="muted small">' + d.families.filter(function(f){return f.autopay;}).length + ' autopay families · nothing is charged.</span></div>'
+  ));
+
+  /* ---- consult ---- */
+  c.appendChild(L.card(
+    '<h2>Consult the money chain</h2>' +
+    '<div class="card-sub">Ledger (DH) owns the integrity of every number; Statement (AE) packages tuition, ' +
+    'discounts, MRR and Revenue Kept; Reconcile (Pacemaker) holds a high 85% bar — a bluffed number is worse than an ' +
+    'honest "unsure", and moving money is a fence. Collected tracks what cleared; Kept tracks the tuition retained.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Are we billing everything we\'ve earned?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Are we billing everything we\'ve earned?','How much tuition do we keep?','Who is on manual pay?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Frankie routes it up rather than bluffing a number. " + v.stance;
+    out.innerHTML = '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "money.pacemaker.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span>' +
+        '<span class="muted small">' + (passed ? "released" : "held — the 85% Money bar") + '</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("money",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    document.getElementById("stageBatch").addEventListener("click", function () {
+      L.stage("money", "Run the 1st-of-month autopay batch",
+        d.families.filter(function(f){return f.autopay;}).length + " autopay families, cards on file. Staged for the owner to run.",
+        "Charging cards moves real money — only the owner runs the batch. The showroom never charges anything.",
+        "Ledger (Money DH)");
+      this.disabled = true; this.textContent = "Staged to the Approval Desk ✓";
+      L.toast("Autopay batch staged — no card was charged.", "ok");
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

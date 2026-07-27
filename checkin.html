@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check-in &amp; Attendance · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "checkin.html", crumb: "Check-in & Attendance" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Check-in & Attendance",
+    "One-tap check-in and the Floor Log — who is on the floor right now, per class. Safety and billing both depend on " +
+    "an accurate headcount, so this is the room the front desk lives in during the after-school rush.",
+    '<button class="btn tang sm" id="consultBtn">Consult the floor chain</button>'
+  ));
+
+  /* pick a class to run check-in on */
+  var running = d.classes.filter(L.isRecurring);
+  c.appendChild(L.card(
+    '<div class="between"><div><h2>One-tap check-in</h2>' +
+    '<div class="card-sub">Pick a class and tap each child in as they arrive. In the showroom this is live in your ' +
+    'browser only — it resets when you leave and no attendance is stored anywhere.</div></div>' +
+    '<div class="row" style="flex:none"><select id="classSel" style="width:220px">' +
+      running.map(function(x){return '<option value="'+L.esc(x.id)+'">'+L.esc(x.name)+' — '+L.esc(x.day)+' '+L.esc(x.time)+'</option>';}).join("") +
+    '</select></div></div>' +
+    '<div id="checkBoard"></div>'
+  ));
+
+  /* the floor log */
+  var open = d.floor.filter(function (x){ return x.status === "Open" || x.status === "In Progress"; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Floor Log items", String(d.floor.length), "This week") +
+    L.stat("Open / in progress", String(open.length), open.length ? "Needs a close" : "All clear", open.length ? "watch" : "good") +
+    L.stat("Equipment items", String(d.floor.filter(function(x){return x.type==="Equipment Check";}).length), "Safety on the floor") +
+    '</div>'));
+  c.appendChild(L.card(
+    '<h2>The Floor Log</h2>' +
+    '<div class="card-sub">Incidents, make-up credits, skill progressions, equipment checks and parent follow-ups — ' +
+    'the running record of what happened on the floor.</div>' +
+    '<table><thead><tr><th>Entry</th><th>Area / class</th><th>Type</th><th>With</th><th>Status</th><th class="num">Due</th></tr></thead><tbody>' +
+    d.floor.map(function (x) {
+      var st = x.status === "Resolved" || x.status === "Closed" ? "good" : (x.status === "In Progress" ? "watch" : "ghost");
+      return '<tr><td><div class="t-main">' + L.esc(x.subject) + '</div><div class="t-sub">' + L.esc(x.note) + '</div></td>' +
+        '<td>' + L.esc(x.area) + '</td><td>' + L.esc(x.type) + '</td><td>' + L.esc(x.party) + '</td>' +
+        '<td>' + L.tag(x.status, st) + '</td><td class="num">' + L.esc(x.due) + '</td></tr>';
+    }).join("") + '</tbody></table>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult the floor chain</h2>' +
+    '<div class="card-sub">Tally (DH) owns who is on the floor; Clip (AE) packages the log and the equipment watch; ' +
+    'Headcount (Pacemaker) releases the floor read at 80% but escalates a ratio breach or an incident. Present tracks ' +
+    'attendance; Safety asks whether the ratio holds and the equipment is in service.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. What is open on the Floor Log?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['What is open on the Floor Log?','Any equipment out of service?','Who is on the floor right now?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  var present = {};
+  function renderBoard() {
+    var cid = document.getElementById("classSel").value;
+    var cl = L.classById(cid, d);
+    present[cid] = present[cid] || {};
+    /* synthesize a roster: named enrolments for this class + placeholders to the headcount */
+    var named = d.enrollments.filter(function(e){return e.classId===cid;}).map(function(e){return e.child+" · "+e.family;});
+    var roster = named.slice();
+    for (var i = named.length; i < cl.enrolled; i++) roster.push("Athlete " + (i+1));
+    var here = roster.filter(function(n){return present[cid][n];}).length;
+    document.getElementById("checkBoard").innerHTML =
+      '<div class="row" style="margin:4px 0 12px"><b>' + L.esc(cl.name) + '</b>' +
+      L.tag(here + " of " + roster.length + " checked in", here===roster.length ? "good" : "watch") + '</div>' +
+      '<div class="row" style="gap:8px">' + roster.map(function (n, i) {
+        var on = present[cid][n];
+        return '<button class="btn ' + (on ? "teal" : "ghost") + ' sm chk" data-n="' + L.esc(n) + '">' +
+          (on ? "✓ " : "") + L.esc(n) + '</button>';
+      }).join("") + '</div>';
+    Array.prototype.forEach.call(document.querySelectorAll(".chk"), function (b) {
+      b.addEventListener("click", function () { present[cid][this.dataset.n] = !present[cid][this.dataset.n]; renderBoard(); });
+    });
+  }
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance : "Held below the " + dept.gate + "% bar (" + v.conf + "%). " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "floor.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("floor",q); if(r) renderConsult(r); }
+
+  renderBoard();
+  setTimeout(function () {
+    document.getElementById("classSel").addEventListener("change", renderBoard);
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>

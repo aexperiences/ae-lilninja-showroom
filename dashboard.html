@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Command Center · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "dashboard.html", crumb: "Command Center" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Command Center",
+    "Everything the gym is carrying, on one sheet. The numbers below are computed from this hub's own data — " +
+    "the schedule, the families, the enrolments — not typed in and not reconstructed at month end.",
+    '<button class="btn tang sm" id="askFrankie">Ask Frankie</button>'
+  ));
+
+  /* ---- Revenue Kept, the headline ---- */
+  var rk = L.revenueKept(d);
+  c.appendChild(L.card(
+    '<div class="between"><div>' +
+      '<h2>Revenue Kept — the headline</h2>' +
+      '<div class="card-sub">LilNinja OS charges one flat white-label license and never takes a cut of tuition. ' +
+      'A per-family platform would. This is the tuition that stays in the gym instead.</div>' +
+    '</div></div>' +
+    '<div class="statrow">' +
+      L.stat("MRR (recurring)", L.money(rk.mrr), "Enrolled × monthly tuition, this month") +
+      L.stat("Revenue Kept / mo", L.money(rk.monthly), "Not taken as a per-family cut", "good") +
+      L.stat("Revenue Kept / yr", L.money(rk.annual), rk.students + " active students · flat license", "good") +
+      L.stat("Est. platform cut", "$" + rk.perStudent.toFixed(2), "per active student / mo — adjustable estimate", "watch") +
+    '</div>' +
+    '<div class="fence teal" style="margin-top:6px"><b>' + L.money(rk.annual) + '/yr stays in the gym.</b> ' +
+    'That is ' + rk.students + ' active students who are not paying a per-family platform slice. LilNinja is a flat ' +
+    'license, so every dollar of tuition clears to the gym\'s own account.</div>' +
+    L.srcNote("The comparison rate ($" + rk.perStudent.toFixed(2) + "/student/mo) is an ESTIMATE, not a sourced figure — " +
+      "Jackrabbit / iClassPro publish tiered per-student pricing, not one flat rate. Replace it with the gym's actual competitor quote.")
+  ));
+
+  /* ---- the metrics board ---- */
+  var kpis = L.kpis();
+  function fmt(k) {
+    if (k.fmt === "pct")   return L.pct(k.value);
+    if (k.fmt === "int")   return String(Math.round(k.value));
+    if (k.fmt === "money") return L.money(k.value);
+    return k.value;
+  }
+  var statHTML = kpis.map(function (k) {
+    var t = k.bench && k.bench.target
+      ? "Target " + k.bench.target[0] + "–" + k.bench.target[1] + (k.bench.unit || "")
+      : "No sourced benchmark yet";
+    return L.stat(k.label, fmt(k), t, k.band);
+  }).join("");
+  c.appendChild(L.card(
+    '<div class="between"><div>' +
+      '<h2>The gym, by the numbers</h2>' +
+      '<div class="card-sub">MRR by program, fill rate and autopay are the three an owner is judged on. ' +
+      'Every value is computed live from this hub\'s schedule and families.</div>' +
+    '</div></div>' +
+    '<div class="statrow">' + statHTML + '</div>' +
+    L.srcNote("Benchmarks ship sourced-or-blank. No youth-gym target band is sourced yet — candidates: IHRSA / " +
+      "Health & Fitness Association, USA Gymnastics club economics, Jackrabbit / iClassPro reports. Blank beats confident-wrong.")
+  ));
+
+  /* ---- classes + coverage ---- */
+  var grid = document.createElement("div"); grid.className = "grid g2";
+
+  var byProg = L.mrrByProgram(d);
+  var maxMrr = byProg.reduce(function (m,p){ return Math.max(m, p.mrr); }, 1);
+  var progRows = byProg.map(function (p) {
+    return '<tr>' +
+      '<td><span class="pchip" style="background:' + p.color + '">' + L.esc(p.program) + '</span></td>' +
+      '<td>' + L.bar(p.mrr / maxMrr * 100, "") + '</td>' +
+      '<td class="num"><b>' + L.money(p.mrr) + '</b></td></tr>';
+  }).join("");
+  grid.appendChild(L.card(
+    '<h2>MRR by program</h2>' +
+    '<div class="card-sub">A kids gym is a subscription business wearing a class schedule. This is where the ' +
+    'recurring revenue actually comes from — camps excluded, because they are seasonal, not recurring.</div>' +
+    '<table><thead><tr><th>Program</th><th>Share</th><th class="num">Monthly</th></tr></thead>' +
+    '<tbody>' + progRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="fence"><b>' + L.money(L.grossMRR(d)) + '/mo across ' + L.activeEnrollments(d) + ' active enrolments.</b> ' +
+    'Billed as a flat monthly rate on the 1st — the 12-payment split of a 47-week program. The charge itself stays ' +
+    'behind the Approval Desk.</div>'
+  ));
+
+  /* coverage / coach certs */
+  var risks = L.coverageRisks(d);
+  var lapsed = risks.filter(function (r){ return !r.cov.ok; });
+  var expiring = risks.filter(function (r){ return r.cov.ok && r.cov.expiring.length; });
+  var riskRows = risks.map(function (r) {
+    var kind = !r.cov.ok ? "bad" : "watch";
+    var detail = !r.cov.ok ? "lapsed: " + r.cov.lapsed.join(", ") : "expiring: " + r.cov.expiring.join(", ");
+    return '<tr>' +
+      '<td><div class="t-main">' + L.esc(r.cls.name) + '</div>' +
+        '<div class="t-sub">' + L.esc(r.cls.coach) + ' · ' + L.esc(r.cls.program) + '</div></td>' +
+      '<td>' + L.tag(!r.cov.ok ? "coverage at risk" : "cert expiring", kind) + '</td>' +
+      '<td class="small muted">' + L.esc(detail) + '</td></tr>';
+  }).join("") || '<tr><td colspan="3" class="empty">Every class has a cleared coach.</td></tr>';
+  grid.appendChild(L.card(
+    '<h2>Coach coverage <span class="tag bad mono">RIGHTS GATE</span></h2>' +
+    '<div class="card-sub">A coach cannot be on the floor behind a lapsed required cert. This is the gym\'s single ' +
+    'biggest liability — so it is a hard gate, not a reminder.</div>' +
+    '<table><thead><tr><th>Class</th><th>Status</th><th>Why</th></tr></thead><tbody>' + riskRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<div class="row">' +
+      L.tag(lapsed.length + " class(es) at coverage risk", lapsed.length ? "bad" : "good") +
+      L.tag(expiring.length + " with a cert expiring", expiring.length ? "watch" : "good") +
+      '<a class="btn ghost sm" href="coaches.html">Open Coaches &amp; Certs →</a>' +
+    '</div>'
+  ));
+  c.appendChild(grid);
+
+  /* ---- waitlist + approvals row ---- */
+  var grid2 = document.createElement("div"); grid2.className = "grid g2";
+
+  var full = L.fullClasses(d);
+  var waitRows = full.map(function (cl) {
+    return '<tr><td><div class="t-main">' + L.esc(cl.name) + '</div>' +
+      '<div class="t-sub">' + L.esc(cl.coach) + ' · ' + L.esc(cl.day) + ' ' + L.esc(cl.time) + '</div></td>' +
+      '<td>' + L.tag("full · waitlist", "watch") + '</td>' +
+      '<td class="num">' + cl.enrolled + '/' + cl.cap + '</td></tr>';
+  }).join("") || '<tr><td colspan="3" class="empty">No class is full right now.</td></tr>';
+  grid2.appendChild(L.card(
+    '<h2>Waitlists — the growth ceiling</h2>' +
+    '<div class="card-sub">A gym\'s growth is literally its waitlist. When a seat opens, the next family is ' +
+    'enrolment already decided — the promotion just has to go out.</div>' +
+    '<table><thead><tr><th>Class</th><th>Status</th><th class="num">Fill</th></tr></thead><tbody>' + waitRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<a class="btn ghost sm" href="enroll.html">Open Enrolment &amp; Waitlists →</a>'
+  ));
+
+  var pend = L.approvals().filter(function (a) { return a.state === "Pending"; });
+  var apRows = pend.map(function (a) {
+    return '<tr><td><div class="t-main">' + L.esc(a.title) + '</div>' +
+      '<div class="t-sub">' + L.esc(a.summary) + '</div></td>' +
+      '<td>' + L.tag(a.kind, "watch") + '<div class="t-sub">' + L.esc(a.by) + '</div></td></tr>';
+  }).join("") || '<tr><td colspan="2" class="empty">The desk is empty. That is the goal.</td></tr>';
+  grid2.appendChild(L.card(
+    '<h2>Approval Desk <span class="tag watch mono">GHOST MODE</span></h2>' +
+    '<div class="card-sub">The org clears everything it honestly can. Only true fences reach the owner — ' +
+    'a send, a spend, a price, or the 1st-of-month autopay batch. A desk trending toward empty is the scoreboard.</div>' +
+    '<table><thead><tr><th>Waiting on you</th><th>Fence</th></tr></thead><tbody>' + apRows + '</tbody></table>' +
+    '<div class="divider"></div>' +
+    '<a class="btn ghost sm" href="approvals.html">Open the desk →</a>'
+  ));
+  c.appendChild(grid2);
+
+  /* ---- what it replaces ---- */
+  var repRows = L.REPLACES.map(function (r) {
+    return '<tr><td><div class="t-main">' + L.esc(r.tool) + '</div>' +
+      '<div class="t-sub">' + L.esc(r.job) + '</div></td>' +
+      '<td class="small muted">' + L.esc(r.cost) + '</td></tr>';
+  }).join("");
+  c.appendChild(L.card(
+    '<h2>What this replaces</h2>' +
+    '<div class="card-sub">We price against the stack it retires — a website builder, a per-family platform, a ' +
+    'card reader, a cert spreadsheet, and a group text. Where a vendor publishes only tiers, we say so.</div>' +
+    '<table><thead><tr><th>Today</th><th>What it costs</th></tr></thead><tbody>' + repRows + '</tbody></table>' +
+    L.srcNote("Vendor-published where published; tiered SaaS labeled as tiered. No single-number claim is invented.")
+  ));
+
+  /* ---- Ask Frankie ---- */
+  c.appendChild(L.card(
+    '<h2>Ask Frankie — the COO seat</h2>' +
+    '<div class="card-sub">Frankie is the AI front desk. She reads the ask, routes it to the right department, ' +
+    'lets that chain work under its own confidence bar, and packages one clean answer back. She gates and ' +
+    'packages — she does not do the work.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. Which class should we grow this month?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['Which waitlist should we promote?',
+       'Is any coach on the floor with a lapsed cert?',
+       'Are we billing everything we\'ve earned?',
+       'Is any enrolled child missing a waiver?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div>' +
+    '<div id="out"></div>', "frankie"
+  ));
+
+  function renderAnswer(r) {
+    var out = document.getElementById("out");
+    var v = r.result.verdict, dept = r.dept, passed = r.result.passed;
+    var pctv = Math.min(100, v.conf);
+    out.innerHTML =
+      '<div class="divider"></div>' +
+      '<div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+        '<div class="bus-topic">' + (passed ? "coo.released" : "escalation.below_bar") + '</div>' +
+        '<div class="bus-body" style="margin-top:5px">' + L.esc(r.packaged) + '</div>' +
+      '</div>' +
+      '<div class="conf">' +
+        '<span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+        '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + pctv + '%"></i>' +
+        '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span>' +
+        '<span class="conf-n">' + v.conf + '%</span>' +
+      '</div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) {
+        return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>';
+      }).join("") + '</ul>' +
+      '<div class="srcnote">Routed through ' + L.esc(dept.dh.name) + ' (DH) → ' + L.esc(dept.ae.name) +
+        ' (AE) → the bus → ' + L.esc(dept.pace.name) + ' (Pacemaker) → ' + L.esc(dept.lensA.name) +
+        ' / ' + L.esc(dept.lensB.name) + ' (opposing lenses). Full trace on the Agent Org page.</div>';
+  }
+  function ask(q) {
+    if (!q) { L.toast("Type a question first.", ""); return; }
+    renderAnswer(L.askFrankie(q));
+  }
+  setTimeout(function () {
+    document.getElementById("go").addEventListener("click", function () {
+      ask(document.getElementById("q").value.trim());
+    });
+    document.getElementById("q").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") ask(this.value.trim());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function () {
+        document.getElementById("q").value = this.dataset.q;
+        ask(this.dataset.q);
+      });
+    });
+    var an = document.getElementById("askFrankie");
+    if (an) an.addEventListener("click", function () {
+      document.getElementById("q").scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("q").focus();
+    });
+  }, 0);
+})();
+</script>
+</body>
+</html>

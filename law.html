@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Law · Waivers &amp; Compliance · LilNinja OS</title>
+<meta name="description" content="LilNinja OS — the operating system for a kids activity gym. Powered by Accelerated Experiences LLC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lilninja.css">
+</head>
+<body>
+<script src="lilninja.js"></script>
+<script>
+(function () {
+  var L = window.LilNinja;
+  var c = L.mount({ active: "law.html", crumb: "Law · Waivers & Compliance" });
+  var d = L.db();
+
+  c.appendChild(L.page(
+    "Law · Waivers & Compliance",
+    "Waivers, minor consent, staffing ratios and coach classification — the youth-activity liability a gym carries. " +
+    "This room is advisory only. It reads the matter, rates the risk, and hands anything with real exposure to a " +
+    "licensed attorney. It is not a lawyer and never signs off.",
+    '<button class="btn tang sm" id="consultBtn">Consult Law · Waivers</button>'
+  ));
+
+  /* the hard fence */
+  c.appendChild(L.card(
+    '<h2>Read this first</h2>' +
+    '<div class="fence"><b>This is an advisory read, not legal advice.</b> LilNinja OS surfaces the waiver, the ' +
+    'consent, the ratio and the classification question — and stops there. A licensed attorney owns every sign-off. ' +
+    'That is why the Law chain runs at a high 85% bar and still routes anything with real liability to a human: ' +
+    'around a minor\'s safety, an honest "get counsel" beats a confident machine opinion every time.</div>'
+  ));
+
+  var open = d.matters.filter(function (m){ return m.state === "Open"; });
+  var high = open.filter(function (m){ return m.risk === "High"; });
+  c.appendChild(L.card('<div class="statrow">' +
+    L.stat("Open matters", String(open.length), "In the docket") +
+    L.stat("High risk", String(high.length), "Minor safety / insurance", high.length ? "bad" : "good") +
+    L.stat("Waiver gaps", String(L.enrolledWithoutWaiver(d).length), "Enrolled without a signed waiver", L.enrolledWithoutWaiver(d).length ? "bad" : "good") +
+    L.stat("Coverage risks", String(L.coverageRisks(d).filter(function(r){return !r.cov.ok;}).length), "Lapsed cert on the floor", "bad") +
+    '</div>'));
+
+  /* the docket */
+  c.appendChild(L.card(
+    '<h2>The docket</h2>' +
+    '<div class="card-sub">Each matter, its risk, and the reference. High-risk items are the ones to route to an ' +
+    'attorney before they sit any longer.</div>' +
+    '<table><thead><tr><th>Matter</th><th>Risk</th><th>Reference</th><th></th></tr></thead><tbody>' +
+    d.matters.map(function (m) {
+      var kind = m.risk === "High" ? "bad" : (m.risk === "Medium" ? "watch" : "ghost");
+      return '<tr><td><div class="t-main">' + L.esc(m.title) + '</div><div class="t-sub">' + L.esc(m.note) + '</div></td>' +
+        '<td>' + L.tag(m.risk, kind) + '</td>' +
+        '<td class="small muted">' + L.esc(m.ref) + '</td>' +
+        '<td><button class="btn ghost sm route" data-title="' + L.esc(m.title) + '" data-risk="' + L.esc(m.risk) + '">Route to attorney</button></td></tr>';
+    }).join("") + '</tbody></table>' +
+    '<div class="srcnote">Staffing ratios and coach classification depend on Idaho youth-activity rules and the ' +
+    'gym\'s insurer — confirm with counsel, never asserted here.</div>'
+  ));
+
+  /* consult */
+  c.appendChild(L.card(
+    '<h2>Consult Law · Waivers</h2>' +
+    '<div class="card-sub">Statute (DH) owns the compliance read; Chair (AE) packages the matter and its sources; ' +
+    'Counsel (Pacemaker) holds the high 85% bar and routes real liability to an attorney. Precedent argues the clean, ' +
+    'enforceable way to paper it; Exposure asks what claim could arise around a minor and whether the insurer responds.</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<input id="q" placeholder="e.g. What needs a real attorney?" style="flex:1;min-width:260px">' +
+      '<button class="btn tang" id="go">Route it</button>' +
+    '</div>' +
+    '<div class="row" style="gap:6px;margin-bottom:4px">' +
+      ['What needs a real attorney?','Are our waivers in order?','Are coaches classified correctly?'].map(function (s) {
+        return '<button class="btn ghost sm ex" data-q="' + L.esc(s) + '">' + L.esc(s) + '</button>';
+      }).join("") +
+    '</div><div id="out"></div>'
+  ));
+
+  function renderConsult(r) {
+    var out = document.getElementById("out"), v = r.verdict, dept = r.dept, passed = r.passed;
+    var head = passed ? dept.pace.name + " released it: " + v.stance
+      : "Held below the " + dept.gate + "% bar (" + v.conf + "%). Routed to a licensed attorney by design. " + v.stance;
+    out.innerHTML = '<div class="divider"></div><div class="' + (passed ? "busrow conclude" : "busrow reject") + '" style="display:block">' +
+      '<div class="bus-topic">' + (passed ? "law.pacemaker.released" : "escalation.below_bar") + '</div>' +
+      '<div class="bus-body" style="margin-top:5px">' + L.esc(head) + '</div></div>' +
+      '<div class="conf"><span class="muted small">' + L.esc(dept.name) + ' · bar ' + dept.gate + '%</span>' +
+      '<span class="conf-bar"><i class="conf-fill ' + (passed ? "" : "under") + '" style="width:' + Math.min(100,v.conf) + '%"></i>' +
+      '<span class="conf-gate" style="left:' + dept.gate + '%"></span></span><span class="conf-n">' + v.conf + '%</span>' +
+      '<span class="muted small">' + (passed ? "released" : "held — get counsel") + '</span></div>' +
+      '<ul class="reasons">' + v.reasons.map(function (x) { return '<li><span class="rtag ' + x.t + '">' + x.t.toUpperCase() + '</span><span>' + L.esc(x.s) + '</span></li>'; }).join("") + '</ul>';
+  }
+  function ask(q){ if(!q){L.toast("Type a question first.","");return;} var r=L.consult("law",q); if(r) renderConsult(r); }
+
+  setTimeout(function () {
+    Array.prototype.forEach.call(document.querySelectorAll(".route"), function (b) {
+      b.addEventListener("click", function () {
+        L.stage("legal", "Route to attorney — " + this.dataset.title,
+          this.dataset.title + " (risk: " + this.dataset.risk + "). Advisory read complete; needs a licensed attorney to own the sign-off.",
+          "Real youth-activity liability — the OS advises, a person decides. Staged for the owner to send to counsel.",
+          "Chair (Law AE)");
+        this.disabled = true; this.textContent = "Staged ✓";
+        L.toast("Routed to the Approval Desk for counsel — no advice was acted on.", "ok");
+      });
+    });
+    document.getElementById("go").addEventListener("click", function(){ ask(document.getElementById("q").value.trim()); });
+    document.getElementById("q").addEventListener("keydown", function(e){ if(e.key==="Enter") ask(this.value.trim()); });
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"), function (b) {
+      b.addEventListener("click", function(){ document.getElementById("q").value=this.dataset.q; ask(this.dataset.q); });
+    });
+    var cb=document.getElementById("consultBtn");
+    if(cb) cb.addEventListener("click", function(){ var q=document.getElementById("q"); q.scrollIntoView({behavior:"smooth",block:"center"}); q.focus(); });
+  }, 0);
+})();
+</script>
+</body>
+</html>
