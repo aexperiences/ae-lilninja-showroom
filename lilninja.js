@@ -408,7 +408,7 @@
      any tier at its own price. Never build up from a stripped base. */
   var DEPTS = [
     { group:"Command", items:[
-      { href:"dashboard.html",  label:"Command Center",        ic:"◎" },
+      { href:"dashboard.html",  label:"Command Center",        ic:"◎" }, { href:"calendar.html", label:"Calendar", ic:"▤" },
       { href:"approvals.html",  label:"Approval Desk",         ic:"✓", accent:"ops" }
     ]},
     { group:"Front Desk", items:[
