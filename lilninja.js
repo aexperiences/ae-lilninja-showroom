@@ -386,16 +386,16 @@
 
   /* The three packages. `includes` is what ships in the box at that price. */
   var TIERS = {
-    lite: { key:"lite", name:"Studio", rank:1, mo:400, build:2500,
+    lite: { key:"lite", name:"Core", rank:1, mo:400, build:0,
       desc:"The class-and-roster core. Schedule, enrolment, families, check-in, coaches and the Floor Studio.",
       base:"Single location · the scheduler that replaces a spreadsheet",
       includes:["schedule","enroll","families","checkin","coaches","studio"] },
-    standard: { key:"standard", name:"Center", rank:2, mo:750, build:6000,
+    standard: { key:"standard", name:"Elite", rank:2, mo:750, build:0,
       desc:"The working gym. Adds the tuition money spine, books & metrics, the enrolment funnel, HR, IT — and the agent org.",
       base:"Single location · unlimited classes",
       includes:["schedule","enroll","families","checkin","coaches","studio",
                 "tuition","books","funnel","hr","it","org"] },
-    grandsuite: { key:"grandsuite", name:"Multi-location", rank:3, mo:1600, build:9900,
+    grandsuite: { key:"grandsuite", name:"Mothership", rank:3, mo:1600, build:0,
       desc:"The whole gym, nothing held back. Every department, the full ten-chain agent org, and Law · Waivers.",
       base:"Multi-location · unlimited · dedicated environment · data migration",
       includes:["schedule","enroll","families","checkin","coaches","studio",
