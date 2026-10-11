@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+<defs>
+<linearGradient id="gcc" x1="0" y1="0" x2="0.65" y2="1">
+<stop offset="0%" stop-color="#6cc47a"/><stop offset="55%" stop-color="#2e7a44"/><stop offset="100%" stop-color="#14351f"/></linearGradient>
+<radialGradient id="glcc" cx="32%" cy="6%" r="80%">
+<stop offset="0%" stop-color="#ffffff" stop-opacity=".26"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+
+</defs>
+<rect x="0" y="0" width="1024" height="1024" fill="url(#gcc)"/>
+<g id="art" transform="translate(36.92,29.50) scale(1.8558)">
+<circle cx="256" cy="246" r="142" fill="#fff" opacity=".11"/>
+<line x1="256.0" y1="100.0" x2="256.0" y2="52.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="179.0" y1="112.6" x2="165.0" y2="88.4" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="129.6" y1="173.0" x2="88.0" y2="149.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="102.0" y1="246.0" x2="74.0" y2="246.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="129.6" y1="319.0" x2="88.0" y2="343.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="179.0" y1="379.4" x2="165.0" y2="403.6" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="256.0" y1="392.0" x2="256.0" y2="440.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="333.0" y1="379.4" x2="347.0" y2="403.6" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="382.4" y1="319.0" x2="424.0" y2="343.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="410.0" y1="246.0" x2="438.0" y2="246.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="382.4" y1="173.0" x2="424.0" y2="149.0" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/><line x1="333.0" y1="112.6" x2="347.0" y2="88.4" stroke="#e0a83a" stroke-width="9" stroke-linecap="round" opacity="0.68"/>
+
+<circle cx="96" cy="120" r="5" fill="#fff" opacity="0.9"/><circle cx="150" cy="72" r="3.5" fill="#fff" opacity="0.7"/><circle cx="392" cy="110" r="4.5" fill="#fff" opacity="0.85"/><circle cx="432" cy="168" r="3" fill="#fff" opacity="0.6"/><circle cx="78" cy="200" r="3" fill="#fff" opacity="0.55"/><circle cx="430" cy="246" r="3.5" fill="#fff" opacity="0.6"/><circle cx="120" cy="392" r="3" fill="#fff" opacity="0.5"/><circle cx="400" cy="404" r="3.5" fill="#fff" opacity="0.55"/>
+<!-- tractor beam -->
+<path d="M186 300 L326 300 L392 468 L120 468 Z" fill="url(#beamcc)"/>
+
+<!-- saucer underbelly -->
+<ellipse cx="256" cy="288" rx="182" ry="46" fill="#c8794f"/>
+<!-- main hull -->
+<ellipse cx="256" cy="274" rx="182" ry="44" fill="#f4eede"/>
+<!-- gold trim band -->
+<ellipse cx="256" cy="266" rx="150" ry="32" fill="#e0a83a"/>
+<!-- upper hull -->
+<ellipse cx="256" cy="256" rx="146" ry="32" fill="#f4eede"/>
+<!-- hull top highlight -->
+<ellipse cx="220" cy="246" rx="72" ry="14" fill="#fff" opacity=".55"/>
+
+<!-- rim lights -->
+<circle cx="132" cy="292" r="13" fill="#e0a83a"/><circle cx="129" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="174" cy="292" r="13" fill="#c8794f"/><circle cx="171" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="216" cy="292" r="13" fill="#5aab6a"/><circle cx="213" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="256" cy="292" r="13" fill="#e0a83a"/><circle cx="253" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="296" cy="292" r="13" fill="#c8794f"/><circle cx="293" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="338" cy="292" r="13" fill="#5aab6a"/><circle cx="335" cy="288" r="4" fill="#fff" opacity=".55"/><circle cx="380" cy="292" r="13" fill="#e0a83a"/><circle cx="377" cy="288" r="4" fill="#fff" opacity=".55"/>
+
+<!-- dome -->
+<ellipse cx="256" cy="204" rx="82" ry="72" fill="#f4eede"/>
+<ellipse cx="256" cy="206" rx="70" ry="61" fill="url(#domecc)"/>
+<path d="M206 178 A62 62 0 0 1 254 152" stroke="#fff" stroke-width="11" fill="none" stroke-linecap="round" opacity=".85"/>
+<!-- dome collar -->
+<ellipse cx="256" cy="252" rx="84" ry="18" fill="#f4eede"/>
+<ellipse cx="256" cy="249" rx="66" ry="11" fill="#2a1810" opacity=".16"/>
+
+<!-- top beacon -->
+<rect x="248" y="118" width="16" height="24" rx="7" fill="#f4eede"/>
+<circle cx="256" cy="112" r="15" fill="#c8794f"/>
+<circle cx="251" cy="107" r="5" fill="#fff" opacity=".7"/>
+
+</g>
+<rect x="0" y="0" width="1024" height="1024" fill="url(#glcc)"/>
+
+</svg>

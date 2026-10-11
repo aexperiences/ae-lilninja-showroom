@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+<defs>
+<linearGradient id="ghr" x1="0" y1="0" x2="0.65" y2="1">
+<stop offset="0%" stop-color="#aebccb"/><stop offset="55%" stop-color="#516a80"/><stop offset="100%" stop-color="#1a2733"/></linearGradient>
+<radialGradient id="glhr" cx="32%" cy="6%" r="80%">
+<stop offset="0%" stop-color="#ffffff" stop-opacity=".26"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+
+</defs>
+<rect x="0" y="0" width="1024" height="1024" fill="url(#ghr)"/>
+<g id="art" transform="translate(7.84,20.89) scale(1.9694)">
+
+
+<!-- the team either side -->
+<g transform="translate(122,170) scale(1.0)">
+  <path d="M-62 62 C-62 18 -32 0 0 0 C32 0 62 18 62 62 Z" fill="#e8b06a"/>
+  <circle cx="0" cy="-26" r="34" fill="#e8b06a"/>
+</g>
+<g transform="translate(390,170) scale(1.0)">
+  <path d="M-62 62 C-62 18 -32 0 0 0 C32 0 62 18 62 62 Z" fill="#e2673f"/>
+  <circle cx="0" cy="-26" r="34" fill="#e2673f"/>
+</g>
+
+
+<!-- magnifier handle -->
+<g transform="translate(322,274) rotate(-42)">
+  <rect x="-20" y="-30" width="40" height="196" rx="18" fill="#9c6d12"/>
+  <rect x="-20" y="-30" width="40" height="196" rx="18" fill="#dda12e"/>
+  <rect x="-20" y="52" width="40" height="114" rx="18" fill="#06474a"/>
+  <rect x="-14" y="62" width="11" height="94" rx="5.5" fill="#fff" opacity=".16"/>
+</g>
+
+<!-- the lens -->
+<circle cx="242" cy="196" r="108" fill="#faf6ee"/>
+<circle cx="242" cy="196" r="108" fill="#2f5fc4" opacity=".16"/>
+<g transform="translate(242,214) scale(0.92)">
+  <path d="M-62 62 C-62 18 -32 0 0 0 C32 0 62 18 62 62 Z" fill="#1f3f86"/>
+  <circle cx="0" cy="-26" r="32" fill="#1f3f86"/>
+</g>
+<circle cx="242" cy="196" r="108" fill="none" stroke="#9c6d12" stroke-width="26"/>
+<circle cx="242" cy="196" r="108" fill="none" stroke="#dda12e" stroke-width="20"/>
+<path d="M172 122 A108 108 0 0 1 244 88" fill="none" stroke="#f5cf78"
+      stroke-width="9" stroke-linecap="round" opacity=".75"/>
+<path d="M186 138 A88 88 0 0 1 238 114" fill="none" stroke="#fff"
+      stroke-width="12" stroke-linecap="round" opacity=".38"/>
+
+</g>
+<rect x="0" y="0" width="1024" height="1024" fill="url(#glhr)"/>
+
+</svg>
