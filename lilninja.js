@@ -21,7 +21,33 @@
   var KEY = "lilninja_showroom_v1";
   var IDLE_MS = 20 * 60 * 1000;         // reset the floor 20 min after they walk away
   var STORE = (function(){ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t'); return localStorage; }catch(e){ return sessionStorage; } })();
-  var TODAY = new Date("2026-07-27");   // the showroom's "today" — matches the seed
+  /* TODAY IS THE REAL TODAY. The sample book was written as the week of Sun Jul 26 2026, seen on Monday the 27th (PIN).
+     Its week is laid onto the current week: every literal date moves by the same whole number of weeks (SHIFT), so
+     each job, visit or class keeps its weekday and "due Wednesday", "three days over" and "this week" read as
+     designed; dates computed from TODAY already follow it. A book saved in an earlier week is moved the same way
+     when it loads (rebase), so a returning visitor's story stays intact. Holidays and birthdays stay put.
+     On a Monday the showroom reads exactly as written; on a day the business is closed, today is quiet. */
+  var PIN = new Date("2026-07-27T12:00:00");
+  var TODAY = (function(){ var n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate(), 12, 0, 0); })();
+  function iso10(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function weekSunday(d){ var x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12); x.setDate(x.getDate() - x.getDay()); return x; }
+  function weeksBetween(a, b){ return Math.round((weekSunday(b) - weekSunday(a)) / 604800000); }
+  var SHIFT_DAYS = 7 * weeksBetween(PIN, TODAY);
+  function SHIFT(s, n){ n = n === undefined ? SHIFT_DAYS : n; if (!n || typeof s !== "string") return s;
+    var m = /^(\d{4})-(\d{2})-(\d{2})(.*)$/.exec(s); if (!m) return s;
+    var d = new Date(+m[1], +m[2] - 1, +m[3], 12); d.setDate(d.getDate() + n); return iso10(d) + m[4]; }
+  function rebase(o, n){
+    if (Array.isArray(o)) { for (var i = 0; i < o.length; i++) o[i] = rebase(o[i], n); return o; }
+    if (o && typeof o === "object") { Object.keys(o).forEach(function (k) { if (k !== "holidays" && k !== "dob" && k !== "born") o[k] = rebase(o[k], n); }); return o; }
+    return typeof o === "string" && /^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/.test(o) ? SHIFT(o, n) : o; }
+  window.AOS_SHIFT = SHIFT;
+  var __read0 = read, __write0 = write, THIS_WEEK = iso10(weekSunday(TODAY));
+  read = function () { var d = __read0(); if (d && d._wk !== THIS_WEEK) {
+      var n = 7 * weeksBetween(d._wk ? new Date(d._wk + "T12:00:00") : PIN, TODAY);
+      if (n) rebase(d, n); d._wk = THIS_WEEK; delete d._day;
+      try { (typeof STORE !== "undefined" ? STORE : localStorage).setItem(KEY, JSON.stringify(d)); } catch (e) {} }
+    return d; };
+  write = function (d) { if (d && !d._wk) d._wk = THIS_WEEK; return __write0.apply(this, arguments); };
 
   function now() { return Date.now(); }
   function read() {
@@ -259,19 +285,19 @@
     coaches: [
       { id:"co1", name:"Coach Bella", role:"Head Coach · Preschool & Gymnastics", programs:["Gymnastics","Preschool"],
         phone:"(208) 555-0201", email:"bella@example.com", note:"Runs the preschool program.",
-        certs:[ { name:"USAG", exp:"2027-05-01" }, { name:"CPR/First Aid", exp:"2026-11-15" }, { name:"Background", exp:"2027-03-01" }, { name:"SafeSport", exp:"2027-01-10" } ] },
+        certs:[ { name:"USAG", exp:SHIFT("2027-05-01") }, { name:"CPR/First Aid", exp:SHIFT("2026-11-15") }, { name:"Background", exp:SHIFT("2027-03-01") }, { name:"SafeSport", exp:SHIFT("2027-01-10") } ] },
       { id:"co2", name:"Coach Mia", role:"Gymnastics & Tumbling Coach", programs:["Gymnastics","Tumbling"],
         phone:"(208) 555-0202", email:"mia@example.com", note:"",
-        certs:[ { name:"USAG", exp:"2027-02-01" }, { name:"CPR/First Aid", exp:"2026-08-20" }, { name:"Background", exp:"2026-12-01" }, { name:"SafeSport", exp:"2026-09-30" } ] },
+        certs:[ { name:"USAG", exp:SHIFT("2027-02-01") }, { name:"CPR/First Aid", exp:SHIFT("2026-08-20") }, { name:"Background", exp:SHIFT("2026-12-01") }, { name:"SafeSport", exp:SHIFT("2026-09-30") } ] },
       { id:"co3", name:"Coach Tyler", role:"Ninja Program Director", programs:["Ninja","Homeschool"],
         phone:"(208) 555-0203", email:"tyler@example.com", note:"",
-        certs:[ { name:"Ninja L2", exp:"2027-06-01" }, { name:"CPR/First Aid", exp:"2027-04-01" }, { name:"Background", exp:"2027-05-01" }, { name:"SafeSport", exp:"2026-10-01" } ] },
+        certs:[ { name:"Ninja L2", exp:SHIFT("2027-06-01") }, { name:"CPR/First Aid", exp:SHIFT("2027-04-01") }, { name:"Background", exp:SHIFT("2027-05-01") }, { name:"SafeSport", exp:SHIFT("2026-10-01") } ] },
       { id:"co4", name:"Coach Jordan", role:"Cheer Director", programs:["Cheer"],
         phone:"(208) 555-0204", email:"jordan@example.com", note:"Coaches the competitive team.",
-        certs:[ { name:"USASF", exp:"2027-08-01" }, { name:"CPR/First Aid", exp:"2026-07-01" }, { name:"Background", exp:"2027-02-01" }, { name:"SafeSport", exp:"2026-12-01" } ] },
+        certs:[ { name:"USASF", exp:SHIFT("2027-08-01") }, { name:"CPR/First Aid", exp:SHIFT("2026-07-01") }, { name:"Background", exp:SHIFT("2027-02-01") }, { name:"SafeSport", exp:SHIFT("2026-12-01") } ] },
       { id:"co5", name:"Coach Priya", role:"STEAM Instructor", programs:["STEAM"],
         phone:"(208) 555-0205", email:"priya@example.com", note:"",
-        certs:[ { name:"STEM Ed", exp:"2027-09-01" }, { name:"CPR/First Aid", exp:"2027-03-01" }, { name:"Background", exp:"2027-01-15" }, { name:"SafeSport", exp:"2027-02-01" } ] }
+        certs:[ { name:"STEM Ed", exp:SHIFT("2027-09-01") }, { name:"CPR/First Aid", exp:SHIFT("2027-03-01") }, { name:"Background", exp:SHIFT("2027-01-15") }, { name:"SafeSport", exp:SHIFT("2027-02-01") } ] }
     ],
 
     /* HR roster — human seats (coaches + front desk + owner) and AI seats side
@@ -292,10 +318,10 @@
 
     /* The Floor Log — incidents, make-up credits, equipment, follow-ups. */
     floor: [
-      { id:"fl1", subject:"Beam landing mat — worn, replace", area:"Gym A", type:"Equipment Check", party:"Director", status:"In Progress", due:"2026-07-29", note:"Order placed; station coned off until it lands." },
-      { id:"fl2", subject:"Make-up credit — missed Mon Tiny Tumblers", area:"Tiny Tumblers", type:"Make-Up Credit", party:"Front Desk", status:"Resolved", due:"2026-07-24", note:"Credit applied; family booked into Thursday." },
-      { id:"fl3", subject:"Ninja Warriors — group ready for Elite drills", area:"Ninja Zone", type:"Skill Progression", party:"Coach", status:"Open", due:"2026-07-30", note:"Three athletes cleared the skills check." },
-      { id:"fl4", subject:"Chalk station dust near vents", area:"Gym A", type:"Equipment Check", party:"Vendor", status:"Closed", due:"2026-07-18", note:"Moved; filters swapped." }
+      { id:"fl1", subject:"Beam landing mat — worn, replace", area:"Gym A", type:"Equipment Check", party:"Director", status:"In Progress", due:SHIFT("2026-07-29"), note:"Order placed; station coned off until it lands." },
+      { id:"fl2", subject:"Make-up credit — missed Mon Tiny Tumblers", area:"Tiny Tumblers", type:"Make-Up Credit", party:"Front Desk", status:"Resolved", due:SHIFT("2026-07-24"), note:"Credit applied; family booked into Thursday." },
+      { id:"fl3", subject:"Ninja Warriors — group ready for Elite drills", area:"Ninja Zone", type:"Skill Progression", party:"Coach", status:"Open", due:SHIFT("2026-07-30"), note:"Three athletes cleared the skills check." },
+      { id:"fl4", subject:"Chalk station dust near vents", area:"Gym A", type:"Equipment Check", party:"Vendor", status:"Closed", due:SHIFT("2026-07-18"), note:"Moved; filters swapped." }
     ],
 
     /* Enrolment funnel — leads -> tours -> trials -> enrolled. */
@@ -772,7 +798,7 @@
           conf: 86,
           reasons: [
             { t:"data", s: lapsed.length + " class(es) have a coach with a LAPSED required cert; " + expiring.length + " have one expiring inside " + EXPIRING_WINDOW_DAYS + " days." },
-            { t:"data", s: "The gate is hard: Cheer requires USASF + CPR + Background + SafeSport. Jordan's CPR/First Aid expired 2026-07-01, so Jordan cannot be assigned until it's renewed." },
+            { t:"data", s: "The gate is hard: Cheer requires USASF + CPR + Background + SafeSport. Jordan's CPR/First Aid expired " + SHIFT("2026-07-01") + ", so Jordan cannot be assigned until it's renewed." },
             { t:"assumption", s: "Renewal dates are the ones on each coach's record here — the issuing body's current requirement is confirmed with them, not in this hub." }
           ]
         };
