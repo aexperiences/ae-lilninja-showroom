@@ -44,7 +44,7 @@
 (function () {
   var T=window.LilNinja;
   var c=T.mount({active:"records.html",crumb:"Records"});
-  var KEY="lilninja_records_v1";
+  var KEY="lilninja_records_v2";
 
   /* The filing plan — one cabinet per real thing the firm keeps. */
   var CABINETS=[
@@ -58,14 +58,18 @@
     {k:"firm",ic:"🏢",name:"The gym",desc:"Lease, formation, policies."}
   ];
 
-  /* Seeded records — real McArthur artifacts where they exist, honestly labeled. */
-  var SEED=[
-    {cab:"families",name:"Waivers — 2026 season",kind:"pdf",tag:"sot",who:"Holly Vance",when:"2026-01-15",note:"Required before any child on the floor."},
-    {cab:"staff",name:"Coach certifications & background checks",kind:"pdf",tag:"sot",who:"Amy Castillo",when:"2026-02-01",note:""},
-    {cab:"money",name:"Tuition roster — July",kind:"xls",tag:"sot",who:"Holly Vance",when:"2026-07-27",note:""},
-    {cab:"safety",name:"Facility inspection & COI",kind:"pdf",tag:"sot",who:"Amy Castillo",when:"2026-01-01",note:""},
-    {cab:"programs",name:"Fall class schedule",kind:"doc",tag:"wip",who:"Mei Lin",when:"2026-07-22",note:""}
-  ];
+  /* Seeded records — built from this system's own book (its people, jobs and paperwork), never typed in. */
+  var SEED=(function(){ var D={}; try{ D=T.db()||{}; }catch(e){} var out=[], today=((T.TODAY instanceof Date)?T.TODAY:new Date()).toISOString().slice(0,10);
+    function add(cab,name,kind,tag,who,when,note){ if(name) out.push({cab:cab,name:String(name),kind:kind||"pdf",tag:tag||"",who:who||"",when:when||"",note:note||""}); }
+    function exp(d){ return !d||!/^\d{4}-/.test(d)?"":(d<today?"EXPIRED":"Expires "+d); }
+    try{ var cf=D.config||{}, OW=cf.owner||"", FD=((D.staff||[]).filter(function(s){return /front desk/i.test(s.role);})[0]||{}).name||OW;
+      (D.families||[]).forEach(function(f){ var kids=f.kids||[], miss=kids.filter(function(k){return !k.waiver;}).map(function(k){return k.name;});
+        add("families","Registration & waivers — "+f.family,"pdf",miss.length?"":"sot",FD,"",miss.length?"No signed waiver: "+miss.join(", "):kids.length+" signed");
+        if(f.autopay) add("money","Tuition autopay authorization — "+f.family,"pdf","sot",FD,"",""); });
+      (D.classes||[]).forEach(function(c){ add("programs","Class plan — "+c.name+" ("+c.program+", "+c.day+" "+c.time+")","doc","sot",c.coach,"",c.enrolled+" of "+c.cap+" enrolled"); });
+      (D.coaches||[]).forEach(function(c){ (c.certs||[]).forEach(function(x){ var e=exp(x.exp); add("staff",x.name+" — "+c.name,"pdf",e==="EXPIRED"?"":"sot",OW,x.exp,e); }); });
+      (D.floor||[]).filter(function(x){return /equipment|safety|incident|inspect/i.test(x.type);}).forEach(function(x){ add("safety",x.type+" — "+x.subject+" ("+x.area+")","doc",x.status==="Done"?"fin":"wip",OW,x.due,x.status); }); }catch(e){}
+    return out; })();
 
   function load(){ try{ var d=JSON.parse(sessionStorage.getItem(KEY)); if(d&&d.length) return d; }catch(e){} return SEED.slice(); }
   function persist(){ try{ sessionStorage.setItem(KEY,JSON.stringify(FILES)); }catch(e){} }

@@ -78,13 +78,13 @@
   var T=window.LilNinja;
   var c=T.mount({active:"connect.html",crumb:"Connect"});
   var API=window.LILNINJA_API+'/api/connect'; var NS='lilninja';
-  var TEAM=[
-    {slug:"amy-castillo",name:"Amy Castillo",role:"Owner / Director",init:"AC"},
-    {slug:"jordan-blake",name:"Jordan Blake",role:"Head Coach",init:"JB"},
-    {slug:"mei-lin",name:"Mei Lin",role:"Program Coordinator",init:"MC"},
-    {slug:"derek-shaw",name:"Derek Shaw",role:"Coach",init:"DS"},
-    {slug:"holly-vance",name:"Holly Vance",role:"Front Desk",init:"HV"}
-  ];
+  /* The team — read from this system's own seeded people, never typed in here. */
+  var TEAM=(function(){ var D={}; try{ D=T.db()||{}; }catch(e){} var out=[], seen={};
+    function add(n,r){ n=String(n||"").trim(); if(!n||seen[n]) return; seen[n]=1;
+      var w=n.replace(/^Coach\s+/,"").replace(/,.*$/,"").split(/\s+/);
+      out.push({slug:n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,""),name:n,role:String(r||""),init:(((w[0]||"")[0]||"")+(w.length>1?w[w.length-1][0]:((w[0]||"")[1]||""))).toUpperCase()}); }
+    try{ (D.staff||[]).forEach(function(s){ if(s.type==="Human") add(s.name,s.role); }); }catch(e){}
+    return out; })();
   var CHANNELS=[
     {ch:"gym",name:"# gym",desc:"The whole gym"},
     {ch:"coaches",name:"# coaches",desc:"Coaching staff"},
