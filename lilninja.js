@@ -437,8 +437,7 @@
   var DEPTS = [
     { group:"Command", items:[
       { href:"dashboard.html",  label:"Command Center",        ic:"◎" }, { href:"calendar.html", label:"Calendar", ic:"▤" }, { href:"contacts.html", label:"Contacts", ic:"☎" }, { href:"connect.html", label:"Connect · Video", ic:"◉" }, { href:"records.html", label:"Records · Filing", ic:"▤" },
-      { href:"approvals.html",  label:"Approval Desk",         ic:"✓", accent:"ops" }
-    ]},
+      { href:"approvals.html",  label:"Approval Desk",         ic:"✓", accent:"ops" }, { href:"masterlist.html", label:"Master List", ic:"✎" }, { href:"mail.html", label:"Mail", ic:"✉" } ]},
     { group:"Front Desk", items:[
       { href:"enroll.html",     label:"Enrolment & Waitlists", ic:"✦", room:"enroll",   accent:"enroll" },
       { href:"funnel.html",     label:"Enrolment Funnel",      ic:"◈", room:"funnel",   accent:"funnel" }
@@ -446,8 +445,7 @@
     { group:"The Floor", items:[
       { href:"schedule.html",   label:"Classes & Schedule",    ic:"▦", room:"schedule", accent:"schedule" },
       { href:"checkin.html",    label:"Check-in & Attendance", ic:"◉", room:"checkin",  accent:"floor" },
-      { href:"studio.html",     label:"Floor Studio",          ic:"◫", room:"studio",   accent:"studio" }
-    ]},
+      { href:"studio.html",     label:"Floor Studio",          ic:"◫", room:"studio",   accent:"studio" }, { href:"aimos.html", label:"Gear Closet", ic:"▦" } ]},
     { group:"People", items:[
       { href:"coaches.html",    label:"Coaches & Certs",       ic:"★", room:"coaches",  accent:"coaches" },
       { href:"families.html",   label:"Families & Kids",       ic:"♥", room:"families", accent:"families" },
@@ -459,8 +457,8 @@
     ]},
     { group:"Governance", items:[
       { href:"law.html",        label:"Law · Waivers",         ic:"⚖", room:"law",      accent:"law" },
-      { href:"it.html",         label:"IT · System Health",    ic:"◐", room:"it",       accent:"it" }
-    ]},
+      { href:"it.html",         label:"IT · System Health",    ic:"◐", room:"it",       accent:"it" }, { href:"documents.html", label:"Documents", ic:"▤" }, { href:"sign.html", label:"e-Sign", ic:"✍" } ]},
+    { group:"The House", items:[ { href:"manual.html", label:"Owner's Manual", ic:"?" }, { href:"skins.html", label:"Skins", ic:"◐" } ] },
     { group:"The Org", items:[
       { href:"org.html",        label:"Agent Org · Bus",       ic:"❖", room:"org",      accent:"ops" }
     ]}
