@@ -2,7 +2,7 @@
 (function(){try{if(window.self!==window.top){var s=document.createElement("style");s.textContent=".ribbon{display:none!important}";(document.head||document.documentElement).appendChild(s);}}catch(e){}})();
 /* ============================================================================
    LILNINJA OS — SHOWROOM ENGINE
-   Kids Activity Gym OS · AETRIAD Powered · Accelerated Experiences LLC
+   Kids Activity Gym OS · Accelerated Operating Systems · Accelerated Experiences LLC
 
    BROWSER-ONLY SHOWROOM. No backend, no network. Everything lives in this
    browser tab's sessionStorage and resets when the visitor leaves or idles.
@@ -1253,7 +1253,7 @@
       '<a href="javascript:void(0)" id="resetFloor">Reset the floor</a></div>');
   }
   function footer() {
-    return el('<div class="ae-credit"><a href="https://www.aexperiences.com/" class="ae-triad" aria-label="AETRIAD Powered - Accelerated Experiences LLC"><img src="/marks/aetriad-powered.png" alt="AETRIAD Powered" style="height:30px;width:auto;vertical-align:middle"></a><br>LilNinja OS is a white-label build. ' +
+    return el('<div class="ae-credit"><a href="https://www.aexperiences.com/" class="ae-triad" aria-label="AOS — Accelerated Experiences LLC"><img src="/marks/aos-badge.png" alt="AOS — Accelerated Operating Systems" style="height:30px;width:auto;vertical-align:middle"></a><br>LilNinja OS is a white-label build. ' +
       'Demo data is a fictional gym; benchmark figures are sourced or shown blank.</div>');
   }
   /* The fleet-wide Command Center polish layer. One file on the store, loaded by
